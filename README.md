@@ -10,7 +10,8 @@ See [SPEC.md](SPEC.md) for the full product plan.
 r3tro/
 ├── index.html                  Homepage (arcade menu)
 ├── games/
-│   └── shardfield/index.html   Game 1: vector rock shooter
+│   ├── shardfield/index.html   Game 1: vector rock shooter
+│   └── duskhold/index.html     Game 2: torch-lit castle explorer
 ├── CNAME                       Custom domain for GitHub Pages (r3tro.io)
 ├── .nojekyll                   Tells GitHub Pages to serve files as-is
 ├── README.md

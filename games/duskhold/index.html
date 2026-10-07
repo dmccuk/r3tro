@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Duskhold | r3tro.io</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Major+Mono+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060a1a;
+    --line: #d9ecff;
+    --cyan: #7fe6ff;
+    --amber: #ffb44a;
+    --rose: #ff5c8a;
+    --mint: #8dffc4;
+    --dim: #6d80a6;
+    --ui: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+    --display: "Major Mono Display", "Courier New", monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* The game is a vector monitor, so it stays dark in both themes. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #060a1a; --line: #d9ecff; }
+  }
+  :root[data-theme="dark"] { --bg: #060a1a; --line: #d9ecff; }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); background: var(--bg); overscroll-behavior: none; }
+  body {
+    height: 100%; margin: 0; background: var(--bg); color: var(--line);
+    font-family: var(--ui); overflow: hidden; overscroll-behavior: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    touch-action: none; -webkit-tap-highlight-color: transparent;
+  }
+  #wrap { position: relative; width: 100%; height: 100%; overflow: hidden; }
+  #cv { position: absolute; inset: 0; display: block; }
+
+  /* HUD */
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between;
+    align-items: flex-start; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+    pointer-events: none; opacity: 0; transition: opacity .3s;
+  }
+  body[data-mode="play"] #hud, body[data-mode="paused"] #hud, body[data-mode="over"] #hud { opacity: 1; }
+  .hud-l { min-width: 84px; }
+  #score { font-family: var(--display); font-size: clamp(22px, 5vw, 30px); line-height: 1; text-shadow: 0 0 10px rgba(127,230,255,.55); }
+  #best { font-size: 13px; color: var(--dim); margin-top: 6px; }
+  .hud-c { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 8px; }
+  #room { max-width: 100%; font-weight: 600; font-size: 15px; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 8px rgba(127,230,255,.45); }
+  #hearts, #inv { display: flex; gap: 5px; min-height: 14px; }
+  #hearts svg { width: 14px; height: 13px; stroke: var(--mint); fill: none; stroke-width: 1.6; }
+  #hearts svg.on { fill: rgba(141,255,196,.35); filter: drop-shadow(0 0 3px rgba(141,255,196,.7)); }
+  #hearts svg.off { stroke: rgba(109,128,166,.45); }
+  #torch { width: 96px; height: 4px; background: rgba(109,128,166,.25); border-radius: 2px; overflow: hidden; }
+  #torch i { display: block; height: 100%; background: var(--amber); transform-origin: left; box-shadow: 0 0 8px var(--amber); }
+  #torch.low i { background: var(--rose); box-shadow: 0 0 8px var(--rose); }
+  #inv svg { width: 14px; height: 14px; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .hud-r { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  #map { width: 60px; height: 60px; }
+  .btns { display: flex; gap: 8px; pointer-events: auto; }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(217,236,255,.3);
+    background: transparent; color: var(--line); font: 600 14px var(--ui); cursor: pointer; display: grid; place-items: center; padding: 0;
+  }
+  .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-btn:focus-visible, .go:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  .icon-btn[aria-pressed="true"] { color: var(--dim); }
+
+  #msg {
+    position: absolute; text-align: center; font-size: 15px; line-height: 1.4; padding: 0 12px; pointer-events: none;
+    opacity: 0; transition: opacity .25s; text-shadow: 0 0 10px currentColor;
+  }
+  #msg.show { opacity: 1; }
+
+  /* Panels */
+  .panel {
+    position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; background: radial-gradient(ellipse at center, rgba(6,10,26,.82) 0%, rgba(6,10,26,.45) 70%, transparent 100%);
+  }
+  .panel.show { display: flex; }
+  h1 {
+    font-family: var(--display); font-weight: 400; font-size: clamp(42px, 12vw, 104px); margin: 0 0 18px; line-height: 1;
+    letter-spacing: .04em; color: var(--line);
+    text-shadow: 0 0 6px rgba(255,180,74,.9), 0 0 24px rgba(255,180,74,.5), 0 0 60px rgba(255,180,74,.25);
+  }
+  h2 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 8vw, 54px); margin: 0 0 14px; text-shadow: 0 0 18px rgba(255,92,138,.6); color: var(--rose); }
+  h2.win { color: var(--mint); text-shadow: 0 0 18px rgba(141,255,196,.6); }
+  .lede { max-width: 36ch; font-size: 17px; line-height: 1.5; margin: 0 0 28px; color: #b9cbe6; }
+  .go {
+    font: 600 18px var(--ui); color: var(--amber); background: rgba(255,180,74,.06); border: 1.5px solid var(--amber);
+    padding: 14px 40px; border-radius: 4px; cursor: pointer; letter-spacing: .02em;
+    box-shadow: 0 0 18px rgba(255,180,74,.25), inset 0 0 12px rgba(255,180,74,.12); transition: background .15s, box-shadow .15s;
+  }
+  .go:hover, .go:active { background: rgba(255,180,74,.16); box-shadow: 0 0 28px rgba(255,180,74,.45), inset 0 0 14px rgba(255,180,74,.2); }
+  .hint { font-size: 14px; color: var(--dim); margin: 22px 0 0; max-width: 38ch; line-height: 1.5; }
+  .hint-touch { display: none; }
+  body.touch .hint-touch { display: block; }
+  body.touch .hint-key { display: none; }
+  .bestline { font-size: 14px; color: var(--amber); margin: 10px 0 0; min-height: 1em; }
+  .final { font-family: var(--display); font-size: clamp(40px, 11vw, 80px); line-height: 1; text-shadow: 0 0 20px rgba(127,230,255,.6); }
+  .newbest { font-size: 16px; font-weight: 600; color: var(--amber); margin: 14px 0 0; min-height: 1.2em; }
+  .newbest.yes { animation: pulse 1s ease-in-out infinite; }
+  .stats { font-size: 15px; color: #b9cbe6; margin: 8px 0 26px; max-width: 36ch; line-height: 1.5; }
+  .home { margin-top: 22px; font-size: 14px; color: var(--dim); text-decoration: none; border-bottom: 1px solid rgba(109,128,166,.4); padding-bottom: 2px; }
+  .home:hover, .home:focus-visible { color: var(--cyan); border-color: var(--cyan); outline: none; }
+  @keyframes pulse { 50% { opacity: .45; } }
+
+  /* Touch controls */
+  #stickZone { position: absolute; left: 0; bottom: 0; top: 126px; width: 55%; display: none; touch-action: none; }
+  body.touch[data-mode="play"] #stickZone { display: block; }
+  #stickBase {
+    position: absolute; width: 104px; height: 104px; margin: -52px 0 0 -52px; border-radius: 50%; pointer-events: none;
+    border: 1.5px solid rgba(217,236,255,.3); background: rgba(127,230,255,.04); opacity: .55;
+  }
+  #stickBase.on { opacity: 1; }
+  #stickKnob {
+    position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%;
+    border: 1.5px solid var(--cyan); background: rgba(127,230,255,.16); box-shadow: 0 0 14px rgba(127,230,255,.4);
+  }
+  .pad {
+    position: absolute; right: max(22px, env(safe-area-inset-right, 0px)); bottom: 34px; display: none;
+    width: 84px; height: 84px; border-radius: 50%; border: 1.5px solid rgba(255,180,74,.6); background: rgba(255,180,74,.05);
+    place-items: center; padding: 0; color: var(--amber); touch-action: none;
+  }
+  body.touch[data-mode="play"] .pad { display: grid; }
+  .pad svg { width: 30px; height: 30px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .pad.on { background: rgba(255,180,74,.22); box-shadow: 0 0 22px rgba(255,180,74,.55); border-color: var(--amber); }
+  @media (prefers-reduced-motion: reduce) { .newbest.yes { animation: none; } }
+</style>
+</head>
+<body data-mode="title">
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud">
+    <div class="hud-l"><div id="score">0</div><div id="best">Best 0</div></div>
+    <div class="hud-c">
+      <div id="room"></div>
+      <div id="hearts"></div>
+      <div id="torch"><i id="torchBar"></i></div>
+      <div id="inv"></div>
+    </div>
+    <div class="hud-r">
+      <div class="btns">
+        <button class="icon-btn" id="muteBtn" aria-label="Mute sound" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+        </button>
+        <button class="icon-btn" id="pauseBtn" aria-label="Pause">
+          <svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg>
+        </button>
+      </div>
+      <canvas id="map" aria-label="Castle map"></canvas>
+    </div>
+  </div>
+
+  <div id="msg" role="status" aria-live="polite"></div>
+
+  <section class="panel show" id="p-title">
+    <h1>duskhold</h1>
+    <p class="lede">Explore a dark castle by torchlight. Search chests, urns and old shelves for keys and clues. Find the three seals to open the gate. Keep your torch burning.</p>
+    <button class="go" id="startBtn">Enter the castle</button>
+    <p class="hint hint-key">Arrows or WASD to move, Space to throw a dagger, P to pause. Walk into things to search them.</p>
+    <p class="hint hint-touch">Drag on the left to move. Tap the right button to throw a dagger. Walk into things to search them.</p>
+    <p class="bestline" id="titleBest"></p>
+    <a class="home" href="../../">More games on r3tro</a>
+  </section>
+
+  <section class="panel" id="p-paused">
+    <h2 style="color:var(--line);text-shadow:0 0 18px rgba(127,230,255,.6)">paused</h2>
+    <button class="go" id="resumeBtn">Resume</button>
+  </section>
+
+  <section class="panel" id="p-over">
+    <h2 id="overTitle">the dark took you</h2>
+    <div class="final" id="finalScore">0</div>
+    <p class="newbest" id="newBest"></p>
+    <p class="stats" id="stats"></p>
+    <button class="go" id="againBtn">Play again</button>
+    <a class="home" href="../../">More games on r3tro</a>
+  </section>
+
+  <div id="stickZone"><div id="stickBase"><div id="stickKnob"></div></div></div>
+  <button class="pad" id="fireBtn" aria-label="Throw dagger"><svg viewBox="0 0 24 24"><path d="M5 19L17 7M14 5l5 0 0 5M7 13l4 4"/></svg></button>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const wrapEl = $('wrap'), cv = $('cv'), ctx = cv.getContext('2d');
+  const mapCv = $('map'), mctx = mapCv.getContext('2d');
+  const TAU = Math.PI * 2, rand = (a, b) => a + Math.random() * (b - a);
+  const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const C = { line: '#d9ecff', soft: '#b9cbe6', stone: '#9fb4dc', cyan: '#7fe6ff', amber: '#ffb44a', rose: '#ff5c8a', mint: '#8dffc4', dim: '#6d80a6' };
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- castle layout ----------
+  // The castle is a 5x5 grid of rooms. Each room is a 15x11 tile screen, shown one at a time.
+  const COLS = 15, ROWS = 11, GW = 5, GH = 5, START = (GH - 1) * GW + 2, PH = .3;
+  const DIRS = { n: [0, -1], s: [0, 1], w: [-1, 0], e: [1, 0] };
+  const OPP = { n: 's', s: 'n', w: 'e', e: 'w' };
+  const KEYS = [{ name: 'Silver key', c: C.line }, { name: 'Gold key', c: C.amber }, { name: 'Crimson key', c: C.rose }];
+  const SEALS = ['Moon seal', 'Sun seal', 'Star seal'];
+  const NAMES = ['Great Hall', 'Armoury', 'Library', 'Chapel', 'Kitchens', 'Well Room', 'Long Gallery', 'Larder', 'Throne Room',
+    'Barracks', 'Solar', 'Cellar', 'Bell Tower', 'Scriptorium', 'Oubliette', 'Wine Vault', 'Guardroom', 'Forge', "Alchemist's Den",
+    'Portrait Hall', 'Bone Pit', 'Map Room', 'Treasury', "Servants' Stair", 'Ossuary', 'Cistern', 'Old Nursery', 'Spider Hall'];
+  const LORE = [
+    'Scrawled in charcoal: "Keep the flame fed. The dark is hungry."',
+    'A faded page: "Three seals to wake the gate, and three keys to reach it."',
+    'A torn diary: "The bats hate a thrown blade."',
+    'A recipe for mushroom stew. Not helpful.',
+    'A note: "Whoever finds this, the ghosts can pass through walls. Run."'
+  ];
+  const PATTERNS = [
+    [],
+    [[4, 3], [10, 3], [4, 7], [10, 7]],
+    [[3, 3], [5, 3], [9, 3], [11, 3], [3, 7], [5, 7], [9, 7], [11, 7]],
+    [[6, 4], [7, 4], [8, 4], [6, 5], [7, 5], [8, 5], [6, 6], [7, 6], [8, 6]],
+    [[4, 3], [5, 3], [6, 3], [7, 3], [8, 3], [9, 3], [10, 3], [4, 7], [5, 7], [6, 7], [7, 7], [8, 7], [9, 7], [10, 7]],
+    [[5, 4], [9, 4], [5, 6], [9, 6], [7, 3], [7, 7]],
+    [[3, 3], [3, 4], [11, 3], [11, 4], [3, 6], [3, 7], [11, 6], [11, 7]]
+  ];
+  const DOOR_TILES = {
+    n: [[6, 0], [7, 0], [8, 0]], s: [[6, ROWS - 1], [7, ROWS - 1], [8, ROWS - 1]],
+    w: [[0, 4], [0, 5], [0, 6]], e: [[COLS - 1, 4], [COLS - 1, 5], [COLS - 1, 6]]
+  };
+
+  const gidx = (x, y) => y * GW + x;
+  function neighbors(i) {
+    const x = i % GW, y = (i / GW) | 0, out = [];
+    for (const d in DIRS) {
+      const nx = x + DIRS[d][0], ny = y + DIRS[d][1];
+      if (nx >= 0 && ny >= 0 && nx < GW && ny < GH) out.push([d, gidx(nx, ny)]);
+    }
+    return out;
+  }
+  const other = (e, i) => e.a === i ? e.b : e.a;
+
+  // Builds a random castle. The rooms form a maze (a tree), so every locked door on the
+  // route to the crypt splits the castle into regions, and each key is placed in a region
+  // you can reach before its door. That guarantees every castle can be finished.
+  function genCastle() {
+    for (let attempt = 0; attempt < 500; attempt++) {
+      const rooms = [];
+      for (let i = 0; i < GW * GH; i++) rooms.push({ i, gx: i % GW, gy: (i / GW) | 0, links: {}, objs: [], objAt: new Map(), visited: false, clue: null, region: 0, pillars: [] });
+      const link = (a, d, b) => { const e = { a, b, lock: -1 }; rooms[a].links[d] = e; rooms[b].links[OPP[d]] = e; };
+      const seen = new Set([START]), stack = [START];
+      while (stack.length) {
+        const cur = stack[stack.length - 1], nb = neighbors(cur).filter(([, n]) => !seen.has(n));
+        if (!nb.length) { stack.pop(); continue; }
+        const [d, n] = pick(nb); seen.add(n); link(cur, d, n); stack.push(n);
+      }
+      const dep = Array(GW * GH).fill(-1), par = Array(GW * GH).fill(-1), q = [START];
+      dep[START] = 0;
+      while (q.length) {
+        const c = q.shift();
+        for (const d in rooms[c].links) { const n = other(rooms[c].links[d], c); if (dep[n] < 0) { dep[n] = dep[c] + 1; par[n] = c; q.push(n); } }
+      }
+      const maxD = Math.max(...dep), exit = pick(rooms.filter(r => dep[r.i] === maxD)).i;
+      const path = [];
+      for (let c = exit; c >= 0; c = par[c]) path.unshift(c);
+      const L = path.length;
+      if (L < 9) continue;
+      const li = [Math.max(1, Math.floor(L * .22)), Math.floor(L * .47), Math.floor(L * .72)];
+      li[1] = Math.max(li[0] + 1, li[1]); li[2] = Math.min(L - 2, Math.max(li[1] + 1, li[2]));
+      if (li[2] <= li[1]) continue;
+      li.forEach((p, k) => { const a = rooms[path[p]]; for (const d in a.links) if (other(a.links[d], a.i) === path[p + 1]) a.links[d].lock = k; });
+
+      rooms[START].region = 0;
+      const rq = [START], rs = new Set([START]);
+      while (rq.length) {
+        const c = rq.shift();
+        for (const d in rooms[c].links) {
+          const e = rooms[c].links[d], n = other(e, c);
+          if (!rs.has(n)) { rs.add(n); rooms[n].region = rooms[c].region + (e.lock >= 0 ? 1 : 0); rq.push(n); }
+        }
+      }
+
+      const used = new Set([START, exit]);
+      const choose = ok => {
+        const c = rooms.filter(r => !used.has(r.i) && ok(r));
+        if (!c.length) return -1;
+        let t = Math.random() * c.reduce((s, r) => s + dep[r.i] + 1, 0);
+        for (const r of c) { t -= dep[r.i] + 1; if (t <= 0) { used.add(r.i); return r.i; } }
+        used.add(c[c.length - 1].i); return c[c.length - 1].i;
+      };
+      const keyRoom = [0, 1, 2].map(k => choose(r => r.region === k));
+      if (keyRoom.includes(-1)) continue;
+      const sealRoom = [0, 1, 2].map(j => { const i = choose(r => r.region === j || r.region === j + 1); return i >= 0 ? i : choose(r => r.region <= j + 1); });
+      if (sealRoom.includes(-1)) continue;
+
+      // A few extra doorways inside the same region make the maze less linear without skipping locks.
+      for (const r of rooms) for (const [d, n] of neighbors(r.i)) {
+        if (n > r.i && !r.links[d] && rooms[n].region === r.region && Math.random() < .3) link(r.i, d, n);
+      }
+
+      const names = shuffle(NAMES.slice());
+      for (const r of rooms) r.name = r.i === START ? 'Gatehouse' : r.i === exit ? 'Sealed Crypt' : names.pop();
+      const c = { rooms, exit, keyRoom, sealRoom, found: { key: [false, false, false], seal: [false, false, false] } };
+      furnish(c);
+      return c;
+    }
+    throw new Error('Could not build a castle');
+  }
+
+  function buildGrid(r) {
+    const g = new Uint8Array(COLS * ROWS);
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (!x || !y || x === COLS - 1 || y === ROWS - 1) g[y * COLS + x] = 1;
+    for (const [x, y] of r.pillars) g[y * COLS + x] = 2;
+    r.doorAt = new Map();
+    for (const d in r.links) for (const [x, y] of DOOR_TILES[d]) { g[y * COLS + x] = r.links[d].lock >= 0 ? 4 : 3; r.doorAt.set(y * COLS + x, d); }
+    r.grid = g;
+    r.segs = wallSegments(g);
+  }
+  // Outlines of the wall tiles, merged into long straight lines so the glow stays even.
+  function wallSegments(g) {
+    const isWall = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS && g[y * COLS + x] === 1;
+    const hz = new Map(), vt = new Map();
+    const add = (m, k, a) => { if (!m.has(k)) m.set(k, []); m.get(k).push(a); };
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      if (!isWall(x, y)) continue;
+      if (!isWall(x, y - 1)) add(hz, y, x);
+      if (!isWall(x, y + 1)) add(hz, y + 1, x);
+      if (!isWall(x - 1, y)) add(vt, x, y);
+      if (!isWall(x + 1, y)) add(vt, x + 1, y);
+    }
+    const out = [];
+    const merge = (m, horiz) => m.forEach((list, k) => {
+      list = [...new Set(list)].sort((a, b) => a - b);
+      let s = list[0], p = list[0];
+      for (let i = 1; i <= list.length; i++) {
+        if (list[i] === p + 1) { p = list[i]; continue; }
+        out.push(horiz ? [s, k, p + 1, k] : [k, s, k, p + 1]);
+        s = p = list[i];
+      }
+    });
+    merge(hz, true); merge(vt, false);
+    return out;
+  }
+  function addObj(r, type, tiles, content) {
+    const o = { type, tiles, tx: tiles[0][0], ty: tiles[0][1], content, open: false };
+    r.objs.push(o);
+    for (const [x, y] of tiles) r.objAt.set(y * COLS + x, o);
+    return o;
+  }
+  function removeObj(r, o) {
+    r.objs.splice(r.objs.indexOf(o), 1);
+    for (const [x, y] of o.tiles) r.objAt.delete(y * COLS + x);
+  }
+  // Furniture only goes on the tiles next to the outer wall, away from doors, so it never blocks a route.
+  function ringSpots(r) {
+    const out = [];
+    const nearDoor = (x, y) => (r.links.n && y <= 2 && x >= 5 && x <= 9) || (r.links.s && y >= ROWS - 3 && x >= 5 && x <= 9) ||
+      (r.links.w && x <= 2 && y >= 3 && y <= 7) || (r.links.e && x >= COLS - 3 && y >= 3 && y <= 7);
+    for (let y = 1; y < ROWS - 1; y++) for (let x = 1; x < COLS - 1; x++) {
+      if ((x === 1 || y === 1 || x === COLS - 2 || y === ROWS - 2) && !nearDoor(x, y)) out.push([x, y]);
+    }
+    return out;
+  }
+  function loot(type) {
+    const r = Math.random();
+    if (type === 'shelf') return r < .55 ? { t: 'scroll' } : { t: 'empty' };
+    if (type === 'urn') return r < .22 ? { t: 'oil' } : r < .7 ? { t: 'gold', v: pick([25, 50]) } : { t: 'empty' };
+    return r < .2 ? { t: 'oil' } : r < .34 ? { t: 'heart' } : r < .44 ? { t: 'trap' } : r < .85 ? { t: 'gold', v: pick([50, 100, 150]) } : { t: 'empty' };
+  }
+  function furnish(c) {
+    for (const r of c.rooms) {
+      r.pillars = r.i === START ? PATTERNS[1] : r.i === c.exit ? [] : pick(PATTERNS);
+      buildGrid(r);
+      const spots = shuffle(ringSpots(r));
+      const add = (type, content) => { const s = spots.pop(); if (s) addObj(r, type, [s], content); };
+      if (r.i === START) { add('shelf', { t: 'scroll' }); add('urn', { t: 'gold', v: 25 }); continue; }
+      if (r.i === c.exit) {
+        const tiles = [];
+        for (let y = 4; y <= 5; y++) for (let x = 6; x <= 8; x++) tiles.push([x, y]);
+        addObj(r, 'gate', tiles, null);
+        add('urn', loot('urn'));
+        continue;
+      }
+      const special = [];
+      c.keyRoom.forEach((ri, k) => { if (ri === r.i) special.push({ t: 'key', k }); });
+      c.sealRoom.forEach((ri, j) => { if (ri === r.i) special.push({ t: 'seal', j }); });
+      for (const s of special) add(Math.random() < .3 ? 'urn' : 'chest', s);
+      const n = randInt(special.length ? 0 : 1, 2);
+      for (let i = 0; i < n; i++) { const roll = Math.random(), type = roll < .42 ? 'chest' : roll < .75 ? 'urn' : 'shelf'; add(type, loot(type)); }
+    }
+  }
+
+  // ---------- screen ----------
+  let W = 0, H = 0, T = 32, ox = 0, oy = 0;
+  const HUD_H = 126;
+  function resize() {
+    const r = wrapEl.getBoundingClientRect(); W = r.width; H = r.height;
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    mapCv.width = mapCv.height = Math.round(60 * d);
+    mctx.setTransform(d, 0, 0, d, 0, 0);
+    const touch = document.body.classList.contains('touch'), portrait = H > W;
+    let aw = W - 16, ah = H - HUD_H - 12;
+    if (touch) { if (portrait) ah -= 180; else aw -= 270; }
+    T = Math.max(12, Math.floor(Math.min(aw / COLS, ah / ROWS)));
+    ox = Math.round((W - COLS * T) / 2);
+    oy = touch && portrait ? HUD_H : Math.round(HUD_H + Math.max(0, (ah - ROWS * T) / 2));
+    const m = $('msg');
+    m.style.left = ox + 'px'; m.style.width = COLS * T + 'px';
+    const below = oy + ROWS * T + 10;
+    m.style.top = (below + 50 < H ? below : oy + ROWS * T - T * 1.6) + 'px';
+    resetStick();
+    G.mapDirty = true;
+  }
+  const X = x => ox + x * T, Y = y => oy + y * T;
+
+  // ---------- storage ----------
+  let best = 0, bestTime = 0, muted = false;
+  try { best = parseInt(localStorage.getItem('duskhold-best'), 10) || 0; } catch (e) {}
+  try { bestTime = parseInt(localStorage.getItem('duskhold-besttime'), 10) || 0; } catch (e) {}
+  try { muted = localStorage.getItem('duskhold-muted') === '1'; } catch (e) {}
+  const save = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) {} };
+
+  // ---------- audio ----------
+  let AC = null, nbuf = null;
+  const VOLUME = 1.1; // master volume multiplier for every sound
+  function initAudio() {
+    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (AC && AC.state === 'suspended') AC.resume();
+  }
+  function beep(freq, dur, type = 'square', vol = .05, slide = 0) {
+    if (!AC || muted) return;
+    const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq * slide), t + dur);
+    g.gain.setValueAtTime(vol * VOLUME, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur + .02);
+  }
+  function noise(dur, vol, freq = 900) {
+    if (!AC || muted) return;
+    if (!nbuf) {
+      nbuf = AC.createBuffer(1, AC.sampleRate * 1.5, AC.sampleRate);
+      const d = nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const t = AC.currentTime, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+    s.buffer = nbuf; f.type = 'lowpass';
+    f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(80, t + dur);
+    g.gain.setValueAtTime(vol * VOLUME, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f).connect(g).connect(AC.destination); s.start(t); s.stop(t + dur + .05);
+  }
+  const arp = (notes, gap, type = 'triangle', vol = .06, dur = .14) => notes.forEach((f, i) => setTimeout(() => beep(f, dur, type, vol), i * gap));
+
+  // ---------- state ----------
+  let castle = null, room = null, enemies = [], daggers = [], parts = [], floats = [];
+  const G = { mode: 'title', score: 0, time: 0, rooms: 0, shake: 0, flick: 0, light: 6, darkT: 5, beatT: 1, overT: 0,
+              msgT: 0, msgText: '', mapDirty: true, won: false, stepT: 0 };
+  const hero = { x: 7.5, y: 8.5, fx: 0, fy: -1, hearts: 3, fuel: 100, inv: 0, cd: 0, bumpCd: 0, keys: [false, false, false], usedKeys: [false, false, false], seals: [false, false, false] };
+  const input = { left: false, right: false, up: false, down: false, fire: false };
+  const stick = { x: 0, y: 0, id: null, cx: 0, cy: 0 };
+
+  function setMode(m) { G.mode = m; document.body.dataset.mode = m; }
+  function showPanel(id) { document.querySelectorAll('.panel').forEach(p => p.classList.toggle('show', p.id === id)); }
+  function msg(text, c = C.line, dur = 3.2) {
+    const m = $('msg');
+    if (G.msgText !== text || G.msgT <= 0) { m.textContent = text; m.style.color = c; G.msgText = text; }
+    G.msgT = dur; m.classList.add('show');
+  }
+  function addFloat(x, y, text, c, life = 1) { floats.push({ x, y, text, c, life, max: life }); }
+  function burst(x, y, n, c, sp = 3) {
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, TAU), v = rand(.5, 1) * sp, l = rand(.3, .7);
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: l, max: l, c });
+    }
+  }
+  function addScore(v, x, y) { G.score += v; if (x != null) addFloat(x, y, '+' + v, C.amber, .9); }
+
+  // ---------- collision ----------
+  function hitAt(x, y, h) {
+    const x0 = Math.floor(x - h), x1 = Math.floor(x + h - 1e-6), y0 = Math.floor(y - h), y1 = Math.floor(y + h - 1e-6);
+    for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+      if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) continue;
+      const k = ty * COLS + tx, g = room.grid[k];
+      if (g === 1 || g === 2 || g === 4) return { tx, ty, g };
+      const o = room.objAt.get(k);
+      if (o) return { tx, ty, g, obj: o };
+    }
+    return null;
+  }
+  function moveBy(e, dx, dy, h) {
+    const hit = hitAt(e.x + dx, e.y + dy, h);
+    if (!hit) { e.x += dx; e.y += dy; }
+    return hit;
+  }
+  // When blocked, slide sideways toward a nearby gap so doorways and corners never feel sticky.
+  function assist(e, dx, dy, h) {
+    const step = Math.abs(dx || dy);
+    for (const s of [1, -1]) {
+      const sx = dy ? s * .45 : 0, sy = dx ? s * .45 : 0;
+      if (!hitAt(e.x + dx + sx, e.y + dy + sy, h) && !hitAt(e.x + sx, e.y + sy, h)) { moveBy(e, Math.sign(sx) * step, Math.sign(sy) * step, h); return; }
+    }
+  }
+
+  // ---------- rooms ----------
+  function enterRoom(r, from) {
+    room = r; daggers = []; parts = [];
+    if (from === 'w') hero.x = COLS - .75;
+    else if (from === 'e') hero.x = .75;
+    else if (from === 'n') hero.y = ROWS - .75;
+    else if (from === 's') hero.y = .75;
+    if (!r.visited) {
+      r.visited = true; G.rooms++;
+      if (r.i !== START) addScore(50, hero.x, hero.y - .6);
+      if (r.i === castle.exit) msg('A great sealed gate. Three empty sockets wait for their seals.', C.mint, 4);
+    }
+    $('room').textContent = r.name;
+    spawnEnemies();
+    G.mapDirty = true;
+    if (from) noise(.12, .05, 400);
+  }
+  function go(dir) {
+    const [dx, dy] = DIRS[dir], n = castle.rooms[gidx(room.gx + dx, room.gy + dy)];
+    enterRoom(n, dir);
+  }
+  function spawnEnemies() {
+    enemies = [];
+    if (room.i === START) return;
+    const reg = room.region;
+    const n = room.i === castle.exit ? randInt(2, 4) : randInt(reg === 0 ? 0 : 1, Math.min(4, 2 + reg));
+    const types = reg === 0 ? ['bat', 'bat', 'spider'] : ['bat', 'spider', 'ghost'];
+    for (let i = 0; i < n; i++) spawnEnemy(pick(types));
+  }
+  function spawnEnemy(type, near) {
+    for (let tries = 0; tries < 50; tries++) {
+      const tx = near ? near[0] + randInt(-2, 2) : randInt(2, COLS - 3), ty = near ? near[1] + randInt(-2, 2) : randInt(2, ROWS - 3);
+      if (tx < 1 || ty < 1 || tx > COLS - 2 || ty > ROWS - 2) continue;
+      const k = ty * COLS + tx;
+      if (room.grid[k] !== 0 || room.objAt.has(k)) continue;
+      const x = tx + .5, y = ty + .5, d = Math.hypot(x - hero.x, y - hero.y);
+      if (d < (near ? 1.3 : 4.5)) continue;
+      enemies.push({ type, x, y, vx: 0, vy: 0, t: rand(0, 5), turn: 0, spawn: .7, flash: 0, angry: false,
+                     hp: type === 'ghost' ? 2 : 1, r: type === 'ghost' ? .32 : type === 'spider' ? .28 : .24 });
+      return;
+    }
+  }
+
+  // ---------- interactions ----------
+  function bump(hit) {
+    if (hero.bumpCd > 0) return;
+    hero.bumpCd = .3;
+    if (hit.g === 4) {
+      const d = room.doorAt.get(hit.ty * COLS + hit.tx), e = room.links[d], k = e.lock;
+      if (hero.keys[k]) {
+        e.lock = -1; hero.keys[k] = false; hero.usedKeys[k] = true;
+        buildGrid(castle.rooms[e.a]); buildGrid(castle.rooms[e.b]);
+        msg(`The ${KEYS[k].name} turns. The door swings open.`, KEYS[k].c);
+        beep(220, .2, 'square', .05, 1.5); setTimeout(() => beep(330, .25, 'triangle', .06, 1.3), 160);
+        burst(hit.tx + .5, hit.ty + .5, 14, KEYS[k].c); G.mapDirty = true;
+      } else {
+        msg(`Locked. You need the ${KEYS[k].name}.`, KEYS[k].c);
+        beep(110, .15, 'square', .05, .9);
+      }
+      return;
+    }
+    if (hit.obj) interact(hit.obj);
+  }
+  function interact(o) {
+    const cx = o.tx + .5, cy = o.ty + .5;
+    if (o.type === 'chest') {
+      if (o.open) { if (G.msgT <= 0) msg('An empty chest.', C.dim, 1.6); return; }
+      o.open = true; beep(140, .28, 'sawtooth', .04, 1.6); burst(cx, cy, 8, C.amber, 2);
+      reveal(o.content, cx, cy);
+    } else if (o.type === 'urn') {
+      smash(o);
+    } else if (o.type === 'shelf') {
+      if (o.open) { if (G.msgT <= 0) msg('Dusty old books.', C.dim, 1.6); return; }
+      o.open = true; noise(.2, .05, 2500);
+      if (o.content.t === 'scroll') readScroll(cx, cy); else msg('Dusty old books. Nothing useful.', C.dim, 2);
+    } else if (o.type === 'gate') {
+      const n = hero.seals.filter(Boolean).length;
+      if (n === 3) win();
+      else { msg(`The gate has three sockets. You hold ${n} of 3 seals.`, C.mint); beep(90, .2, 'square', .05, .9); }
+    }
+  }
+  function smash(o) {
+    removeObj(room, o);
+    noise(.25, .14, 1800);
+    burst(o.tx + .5, o.ty + .5, 14, C.soft, 3.5);
+    reveal(o.content, o.tx + .5, o.ty + .5);
+  }
+  function reveal(c, x, y) {
+    if (c.t === 'key') {
+      hero.keys[c.k] = true; castle.found.key[c.k] = true; room.clue = null;
+      addScore(250, x, y); msg(`You found the ${KEYS[c.k].name}!`, KEYS[c.k].c); arp([523, 659, 784, 1046], 80);
+      G.mapDirty = true;
+    } else if (c.t === 'seal') {
+      hero.seals[c.j] = true; castle.found.seal[c.j] = true; room.clue = null;
+      const n = hero.seals.filter(Boolean).length;
+      addScore(1000, x, y); arp([392, 523, 659, 784, 1046], 110, 'triangle', .07, .2);
+      if (n === 3) { msg('All three seals! Find the Sealed Crypt and open the gate.', C.mint, 4.5); castle.rooms[castle.exit].clue = C.mint; }
+      else msg(`The ${SEALS[c.j]}! ${n} of 3 seals.`, C.mint);
+      G.mapDirty = true;
+    } else if (c.t === 'oil') {
+      hero.fuel = Math.min(100, hero.fuel + 40);
+      msg('Lamp oil. Your torch flares up.', C.amber); beep(330, .3, 'triangle', .06, 2); burst(hero.x, hero.y, 16, C.amber, 2.5);
+    } else if (c.t === 'heart') {
+      if (hero.hearts < 5) { hero.hearts++; msg('Bread and ale. +1 heart.', C.mint); } else { addScore(100, x, y); msg('Bread and ale. You are already full.', C.mint); }
+      arp([523, 784], 90);
+    } else if (c.t === 'gold') {
+      addScore(c.v, x, y); beep(988, .07, 'square', .03); setTimeout(() => beep(1318, .1, 'square', .03), 70);
+    } else if (c.t === 'trap') {
+      msg('A nest of spiders!', C.rose); beep(180, .3, 'sawtooth', .05, .5);
+      spawnEnemy('spider', [Math.floor(x), Math.floor(y)]); spawnEnemy('spider', [Math.floor(x), Math.floor(y)]);
+      for (const e of enemies) if (e.type === 'spider') e.angry = true;
+    } else {
+      msg('Empty.', C.dim, 1.4);
+    }
+  }
+  // Clues point at whatever you need next: the lowest key you are missing, then the seals.
+  function readScroll(x, y) {
+    addScore(100, x, y);
+    const targets = [];
+    for (let k = 0; k < 3; k++) if (!castle.found.key[k]) targets.push({ ri: castle.keyRoom[k], name: KEYS[k].name, c: KEYS[k].c });
+    for (let j = 0; j < 3; j++) if (!castle.found.seal[j]) targets.push({ ri: castle.sealRoom[j], name: SEALS[j], c: C.mint });
+    const t = targets.find(t => !castle.rooms[t.ri].clue);
+    if (t) {
+      const r = castle.rooms[t.ri];
+      r.clue = t.c; G.mapDirty = true;
+      msg(`An old note: "The ${t.name} lies hidden in the ${r.name}."`, t.c, 5);
+      arp([440, 554], 120, 'sine', .05);
+    } else msg(pick(LORE), C.soft, 4.5);
+  }
+  function throwDagger() {
+    if (daggers.length >= 2) return;
+    hero.cd = .3;
+    daggers.push({ x: hero.x + hero.fx * .3, y: hero.y + hero.fy * .3, vx: hero.fx * 11, vy: hero.fy * 11, life: 1 });
+    beep(700, .08, 'triangle', .04, .5); noise(.06, .04, 2500);
+  }
+  function hurt(src, text) {
+    hero.hearts--; hero.inv = 1.3; G.shake = 10;
+    beep(160, .35, 'sawtooth', .07, .5); noise(.3, .12, 800); burst(hero.x, hero.y, 18, C.rose, 3);
+    if (src) {
+      const dx = hero.x - src.x, dy = hero.y - src.y, d = Math.hypot(dx, dy) || 1;
+      for (let i = 0; i < 6; i++) { moveBy(hero, dx / d * .1, 0, PH); moveBy(hero, 0, dy / d * .1, PH); }
+    }
+    if (text) msg(text, C.rose);
+    if (hero.hearts <= 0) gameOver(false);
+  }
+  function killEnemy(i) {
+    const e = enemies[i]; enemies.splice(i, 1);
+    burst(e.x, e.y, 16, e.type === 'ghost' ? C.line : C.rose, 3);
+    addScore({ bat: 50, spider: 75, ghost: 150 }[e.type], e.x, e.y);
+    noise(.18, .1, 1200); beep(300, .12, 'sawtooth', .04, .4);
+  }
+
+  function startGame() {
+    if (G.mode === 'play') return;
+    initAudio();
+    castle = genCastle();
+    Object.assign(hero, { x: 7.5, y: 8.5, fx: 0, fy: -1, hearts: 3, fuel: 100, inv: 0, cd: 0, bumpCd: 0,
+                          keys: [false, false, false], usedKeys: [false, false, false], seals: [false, false, false] });
+    Object.assign(G, { score: 0, time: 0, rooms: 0, shake: 0, darkT: 5, beatT: 1, won: false, mapDirty: true });
+    floats = [];
+    enterRoom(castle.rooms[START]);
+    setMode('play'); showPanel(null);
+    msg('Find the three seals. Walk into the shelf to search it.', C.soft, 4);
+  }
+  function win() {
+    G.won = true;
+    const bonus = 5000 + hero.hearts * 500 + Math.round(hero.fuel) * 20 + Math.max(0, 900 - Math.round(G.time)) * 10;
+    G.score += bonus;
+    arp([392, 523, 659, 784, 1046, 1318], 120, 'triangle', .08, .3);
+    burst(7.5, 4.8, 60, C.mint, 5);
+    gameOver(true, bonus);
+  }
+  const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  function gameOver(won, bonus = 0) {
+    setMode('over'); G.overT = .8; $('msg').classList.remove('show'); G.msgT = 0;
+    const isBest = G.score > best && G.score > 0;
+    if (isBest) { best = G.score; save('duskhold-best', best); }
+    let newTime = false;
+    if (won && (!bestTime || G.time < bestTime)) { bestTime = Math.round(G.time); save('duskhold-besttime', bestTime); newTime = true; }
+    $('overTitle').textContent = won ? 'you escaped' : 'the dark took you';
+    $('overTitle').classList.toggle('win', won);
+    $('finalScore').textContent = G.score.toLocaleString();
+    const nb = $('newBest');
+    nb.textContent = isBest ? 'New best score' : (best > G.score ? (best - G.score).toLocaleString() + ' short of your best' : '');
+    nb.classList.toggle('yes', isBest);
+    const seals = hero.seals.filter(Boolean).length;
+    $('stats').textContent = won
+      ? `Escaped in ${fmt(G.time)} with an escape bonus of ${bonus.toLocaleString()}. ${newTime ? 'Fastest escape yet.' : 'Fastest escape ' + fmt(bestTime) + '.'}`
+      : `Explored ${G.rooms} of ${GW * GH} rooms. Found ${seals} of 3 seals in ${fmt(G.time)}.`;
+    showPanel('p-over');
+    setTimeout(() => $('againBtn').focus({ preventScroll: true }), 50);
+  }
+  function togglePause() {
+    if (G.mode === 'play') { setMode('paused'); showPanel('p-paused'); releaseInput(); }
+    else if (G.mode === 'paused') { setMode('play'); showPanel(null); initAudio(); }
+  }
+  function toggleMute() { muted = !muted; save('duskhold-muted', muted ? '1' : '0'); syncMute(); }
+  function syncMute() {
+    $('muteBtn').setAttribute('aria-pressed', String(muted));
+    $('muteBtn').setAttribute('aria-label', muted ? 'Turn sound on' : 'Mute sound');
+    $('waves').style.display = muted ? 'none' : '';
+  }
+
+  // ---------- update ----------
+  function update(dt) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i], f = Math.pow(.15, dt);
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= f; p.vy *= f;
+      if ((p.life -= dt) <= 0) parts.splice(i, 1);
+    }
+    for (let i = floats.length - 1; i >= 0; i--) { const f = floats[i]; f.y -= .8 * dt; if ((f.life -= dt) <= 0) floats.splice(i, 1); }
+    G.shake = Math.max(0, G.shake - dt * 38);
+    G.flick += dt;
+    if (G.msgT > 0 && (G.msgT -= dt) <= 0) $('msg').classList.remove('show');
+    if (G.mode === 'over') G.overT -= dt;
+    if (G.mode !== 'play') return;
+    G.time += dt;
+
+    // torch
+    hero.fuel = Math.max(0, hero.fuel - dt * 100 / 210);
+    if (hero.fuel <= 0 && (G.darkT -= dt) <= 0) { G.darkT = 5; hurt(null, 'The dark gnaws at you. Find lamp oil!'); if (G.mode !== 'play') return; }
+    if (hero.fuel < 25 && (G.beatT -= dt) <= 0) { beep(55, .14, 'square', .07, .8); G.beatT = .45 + hero.fuel / 25 * .6; }
+    G.light = (1.4 + 5.6 * Math.pow(hero.fuel / 100, .7)) * (RM ? 1 : 1 + Math.sin(G.flick * 11) * .025 + Math.sin(G.flick * 23.7) * .02);
+
+    // hero
+    hero.inv -= dt; hero.cd -= dt; hero.bumpCd -= dt;
+    let ix = (input.right ? 1 : 0) - (input.left ? 1 : 0) + stick.x, iy = (input.down ? 1 : 0) - (input.up ? 1 : 0) + stick.y;
+    const m = Math.hypot(ix, iy);
+    if (m > 1) { ix /= m; iy /= m; }
+    if (m > .2) { hero.fx = ix / m; hero.fy = iy / m; }
+    const vx = ix * 4.3 * dt, vy = iy * 4.3 * dt;
+    if (vx) { const h = moveBy(hero, vx, 0, PH); if (h) { bump(h); if (!vy) assist(hero, vx, 0, PH); } }
+    if (vy) { const h = moveBy(hero, 0, vy, PH); if (h) { bump(h); if (!vx) assist(hero, 0, vy, PH); } }
+    if (m > .2 && (G.stepT -= dt) <= 0) { G.stepT = .3; noise(.04, .03, 500); }
+    if (hero.x < .3) return go('w');
+    if (hero.x > COLS - .3) return go('e');
+    if (hero.y < .3) return go('n');
+    if (hero.y > ROWS - .3) return go('s');
+    if (input.fire && hero.cd <= 0) throwDagger();
+
+    // daggers
+    outer: for (let i = daggers.length - 1; i >= 0; i--) {
+      const d = daggers[i];
+      d.x += d.vx * dt; d.y += d.vy * dt;
+      const tx = Math.floor(d.x), ty = Math.floor(d.y);
+      if ((d.life -= dt) <= 0 || tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) { daggers.splice(i, 1); continue; }
+      const k = ty * COLS + tx, g = room.grid[k], o = room.objAt.get(k);
+      if (g === 1 || g === 2 || g === 4 || o) {
+        daggers.splice(i, 1);
+        if (o && o.type === 'urn') smash(o);
+        else { burst(d.x - d.vx * .02, d.y - d.vy * .02, 5, C.cyan, 2); beep(1400, .04, 'square', .02, .6); }
+        continue;
+      }
+      for (let j = enemies.length - 1; j >= 0; j--) {
+        const e = enemies[j];
+        if (e.spawn <= 0 && Math.hypot(e.x - d.x, e.y - d.y) < e.r + .14) {
+          daggers.splice(i, 1);
+          if (--e.hp <= 0) killEnemy(j); else { e.flash = .15; beep(500, .06, 'square', .03, .6); }
+          continue outer;
+        }
+      }
+    }
+
+    // enemies
+    for (const e of enemies) {
+      e.t += dt; e.flash -= dt;
+      if (e.spawn > 0) { e.spawn -= dt; continue; }
+      const dx = hero.x - e.x, dy = hero.y - e.y, d = Math.hypot(dx, dy) || 1;
+      if (e.type === 'bat' || (e.type === 'spider' && !e.angry)) {
+        const sp = e.type === 'bat' ? 3 : 1;
+        if ((e.turn -= dt) <= 0) {
+          e.turn = rand(.25, .7);
+          const a = e.type === 'bat' && Math.random() < .45 ? Math.atan2(dy, dx) + rand(-.6, .6) : rand(0, TAU);
+          e.vx = Math.cos(a) * sp; e.vy = Math.sin(a) * sp;
+        }
+        if (moveBy(e, e.vx * dt, 0, .22)) e.vx *= -1;
+        if (moveBy(e, 0, e.vy * dt, .22)) e.vy *= -1;
+        if (e.type === 'spider' && d < 6) e.angry = true;
+      } else if (e.type === 'spider') {
+        const sp = 2.2 * dt;
+        const bx = moveBy(e, dx / d * sp, 0, .26), by = moveBy(e, 0, dy / d * sp, .26);
+        if (bx && !by) assist(e, dx / d * sp, 0, .26); else if (by && !bx) assist(e, 0, dy / d * sp, .26);
+      } else {
+        const sp = 1.2 * dt;
+        e.x = Math.max(1.3, Math.min(COLS - 1.3, e.x + dx / d * sp));
+        e.y = Math.max(1.3, Math.min(ROWS - 1.3, e.y + dy / d * sp));
+      }
+      if (hero.inv <= 0 && d < e.r + .26) { hurt(e); if (G.mode !== 'play') return; }
+    }
+  }
+
+  // ---------- render ----------
+  function glow(color, w) {
+    ctx.strokeStyle = color;
+    const a = ctx.globalAlpha;
+    ctx.globalAlpha = a * .25; ctx.lineWidth = w * 3.5; ctx.stroke();
+    ctx.globalAlpha = a; ctx.lineWidth = w; ctx.stroke();
+  }
+  function wallPath() {
+    ctx.beginPath();
+    for (const [x1, y1, x2, y2] of room.segs) { ctx.moveTo(X(x1), Y(y1)); ctx.lineTo(X(x2), Y(y2)); }
+  }
+  function drawLocks(lw) {
+    room.doorAt.forEach((d, k) => {
+      if (room.grid[k] !== 4) return;
+      const tx = k % COLS, ty = (k / COLS) | 0, c = KEYS[room.links[d].lock].c, horiz = d === 'n' || d === 's';
+      ctx.beginPath();
+      for (let i = 1; i <= 3; i++) {
+        if (horiz) { ctx.moveTo(X(tx + i / 4), Y(ty + .1)); ctx.lineTo(X(tx + i / 4), Y(ty + .9)); }
+        else { ctx.moveTo(X(tx + .1), Y(ty + i / 4)); ctx.lineTo(X(tx + .9), Y(ty + i / 4)); }
+      }
+      if (horiz) { ctx.moveTo(X(tx), Y(ty + .5)); ctx.lineTo(X(tx + 1), Y(ty + .5)); }
+      else { ctx.moveTo(X(tx + .5), Y(ty)); ctx.lineTo(X(tx + .5), Y(ty + 1)); }
+      glow(c, lw);
+    });
+  }
+  function drawObj(o, lw) {
+    const x = X(o.tx), y = Y(o.ty), t = T;
+    if (o.type === 'chest') {
+      ctx.globalAlpha = o.open ? .45 : 1;
+      ctx.beginPath(); ctx.rect(x + .15 * t, y + .42 * t, .7 * t, .43 * t);
+      if (o.open) { ctx.moveTo(x + .15 * t, y + .42 * t); ctx.lineTo(x + .22 * t, y + .1 * t); ctx.lineTo(x + .78 * t, y + .1 * t); ctx.lineTo(x + .85 * t, y + .42 * t); }
+      else { ctx.moveTo(x + .15 * t, y + .42 * t); ctx.lineTo(x + .2 * t, y + .24 * t); ctx.lineTo(x + .8 * t, y + .24 * t); ctx.lineTo(x + .85 * t, y + .42 * t); ctx.rect(x + .44 * t, y + .38 * t, .12 * t, .14 * t); }
+      glow(C.amber, lw); ctx.globalAlpha = 1;
+    } else if (o.type === 'urn') {
+      ctx.beginPath(); ctx.ellipse(x + .5 * t, y + .6 * t, .27 * t, .26 * t, 0, 0, TAU);
+      ctx.moveTo(x + .38 * t, y + .37 * t); ctx.lineTo(x + .38 * t, y + .17 * t); ctx.lineTo(x + .62 * t, y + .17 * t); ctx.lineTo(x + .62 * t, y + .37 * t);
+      glow(C.soft, lw);
+    } else if (o.type === 'shelf') {
+      ctx.globalAlpha = o.open ? .45 : 1;
+      ctx.beginPath(); ctx.rect(x + .1 * t, y + .1 * t, .8 * t, .8 * t);
+      ctx.moveTo(x + .1 * t, y + .5 * t); ctx.lineTo(x + .9 * t, y + .5 * t);
+      for (const bx of [.22, .32, .42, .62]) { ctx.moveTo(x + bx * t, y + .18 * t); ctx.lineTo(x + bx * t, y + .48 * t); }
+      for (const bx of [.25, .55, .65, .75]) { ctx.moveTo(x + bx * t, y + .58 * t); ctx.lineTo(x + bx * t, y + .88 * t); }
+      glow(C.cyan, lw); ctx.globalAlpha = 1;
+    } else if (o.type === 'gate') {
+      const cx = X(7.5), cy = Y(5.45);
+      ctx.beginPath();
+      ctx.moveTo(X(6.1), Y(5.95)); ctx.lineTo(X(6.1), cy); ctx.arc(cx, cy, 1.4 * t, Math.PI, 0); ctx.lineTo(X(8.9), Y(5.95)); ctx.closePath();
+      ctx.moveTo(X(6.55), Y(5.95)); ctx.lineTo(X(6.55), cy); ctx.arc(cx, cy, .95 * t, Math.PI, 0); ctx.lineTo(X(8.45), Y(5.95));
+      glow(C.line, lw * 1.2);
+      [Math.PI * 1.15, Math.PI * 1.5, Math.PI * 1.85].forEach((a, j) => {
+        const sx = cx + Math.cos(a) * 1.18 * t, sy = cy + Math.sin(a) * 1.18 * t;
+        ctx.beginPath(); ctx.arc(sx, sy, .13 * t, 0, TAU);
+        if (hero.seals[j]) { ctx.fillStyle = C.mint; ctx.globalAlpha = .6; ctx.fill(); ctx.globalAlpha = 1; }
+        glow(C.mint, lw);
+      });
+    }
+  }
+  function drawEnemy(e, lw) {
+    const x = X(e.x), y = Y(e.y), t = T;
+    ctx.globalAlpha = e.spawn > 0 ? Math.max(0, 1 - e.spawn / .7) * (Math.floor(e.spawn * 20) % 2 ? .4 : 1) : 1;
+    const c = e.flash > 0 ? '#ffffff' : e.type === 'ghost' ? C.line : C.rose;
+    if (e.type === 'bat') {
+      const f = Math.sin(e.t * 22) * .13 * t;
+      ctx.beginPath(); ctx.arc(x, y, .07 * t, 0, TAU);
+      ctx.moveTo(x - .38 * t, y - .05 * t + f); ctx.lineTo(x - .18 * t, y + .07 * t); ctx.lineTo(x - .06 * t, y);
+      ctx.moveTo(x + .38 * t, y - .05 * t + f); ctx.lineTo(x + .18 * t, y + .07 * t); ctx.lineTo(x + .06 * t, y);
+      glow(c, lw);
+    } else if (e.type === 'spider') {
+      ctx.beginPath(); ctx.arc(x, y, .14 * t, 0, TAU);
+      for (let i = 0; i < 4; i++) for (const s of [-1, 1]) {
+        const a = (i - 1.5) * .45 + (s < 0 ? Math.PI : 0) + Math.sin(e.t * 14 + i * 1.7) * .12;
+        const kx = x + Math.cos(a) * .26 * t, ky = y + Math.sin(a) * .26 * t - .08 * t;
+        ctx.moveTo(x + Math.cos(a) * .13 * t, y + Math.sin(a) * .13 * t); ctx.lineTo(kx, ky); ctx.lineTo(kx + Math.cos(a) * .12 * t, ky + .16 * t);
+      }
+      glow(c, lw);
+    } else {
+      const r = .3 * t, b = y + .3 * t + Math.sin(e.t * 3) * .03 * t;
+      ctx.globalAlpha *= .85;
+      ctx.beginPath(); ctx.moveTo(x - r, b); ctx.lineTo(x - r, y - .05 * t); ctx.arc(x, y - .05 * t, r, Math.PI, 0); ctx.lineTo(x + r, b);
+      for (let i = 0; i < 3; i++) { const x0 = x + r - i * r * 2 / 3; ctx.quadraticCurveTo(x0 - r / 3, b - .12 * t * (i % 2 ? -1 : 1), x0 - r * 2 / 3, b); }
+      glow(c, lw);
+      ctx.beginPath(); ctx.arc(x - .1 * t, y - .07 * t, .045 * t, 0, TAU); ctx.arc(x + .1 * t, y - .07 * t, .045 * t, 0, TAU); glow(C.cyan, lw * .8);
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawHero(lw) {
+    if (hero.inv > 0 && Math.floor(hero.inv * 10) % 2) return;
+    const x = X(hero.x), y = Y(hero.y), r = .27 * T, fx = hero.fx, fy = hero.fy;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); glow(C.cyan, lw * 1.2);
+    ctx.beginPath(); ctx.moveTo(x + fx * r * .25 - fy * r * .45, y + fy * r * .25 + fx * r * .45);
+    ctx.lineTo(x + fx * r * .25 + fy * r * .45, y + fy * r * .25 - fx * r * .45); glow(C.cyan, lw);
+    // the torch, held out to the right hand side
+    const hx = x + (fx * .2 - fy * .38) * T, hy = y + (fy * .2 + fx * .38) * T, fl = RM ? 1 : rand(.8, 1.2);
+    ctx.beginPath(); ctx.moveTo(hx - .07 * T, hy); ctx.quadraticCurveTo(hx, hy - .3 * T * fl, hx + .07 * T, hy); ctx.closePath(); glow(C.amber, lw);
+  }
+  function render() {
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.fillStyle = '#060a1a'; ctx.fillRect(0, 0, W, H);
+    if (!room) return;
+    const lw = Math.max(1.1, T / 30);
+    ctx.save();
+    if (G.shake > 0 && !RM) ctx.translate(rand(-G.shake, G.shake) * .5, rand(-G.shake, G.shake) * .5);
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+    ctx.fillStyle = '#8ea6d8'; ctx.globalAlpha = .18;
+    const ds = Math.max(1.2, T / 22);
+    for (let ty = 1; ty < ROWS - 1; ty++) for (let tx = 1; tx < COLS - 1; tx++) if (!room.grid[ty * COLS + tx]) ctx.fillRect(X(tx + .5) - ds / 2, Y(ty + .5) - ds / 2, ds, ds);
+    ctx.globalAlpha = 1;
+    wallPath(); glow(C.line, lw * 1.3);
+    if (room.pillars.length) {
+      ctx.beginPath();
+      for (const [tx, ty] of room.pillars) { ctx.rect(X(tx + .14), Y(ty + .14), .72 * T, .72 * T); ctx.rect(X(tx + .34), Y(ty + .34), .32 * T, .32 * T); }
+      glow(C.stone, lw);
+    }
+    drawLocks(lw);
+    for (const o of room.objs) drawObj(o, lw);
+    for (const e of enemies) drawEnemy(e, lw);
+    for (const d of daggers) { ctx.beginPath(); ctx.moveTo(X(d.x), Y(d.y)); ctx.lineTo(X(d.x - d.vx * .03), Y(d.y - d.vy * .03)); glow(C.cyan, lw * 1.3); }
+    const playing = G.mode !== 'title';
+    if (playing && hero.hearts > 0) drawHero(lw);
+    for (const p of parts) {
+      ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.strokeStyle = p.c; ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.moveTo(X(p.x), Y(p.y)); ctx.lineTo(X(p.x - p.vx * .04), Y(p.y - p.vy * .04)); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // darkness: only what the torch reaches is clearly visible
+    const lx = playing ? hero.x : 7.5 + Math.sin(G.flick * .45) * 4.5, ly = playing ? hero.y : 5.5 + Math.sin(G.flick * .7) * 2.6;
+    const R = (playing ? G.light : 4.2) * T, px = X(lx), py = Y(ly);
+    ctx.globalCompositeOperation = 'source-over';
+    const g = ctx.createRadialGradient(px, py, R * .12, px, py, R);
+    g.addColorStop(0, 'rgba(6,10,26,0)'); g.addColorStop(.55, 'rgba(6,10,26,.35)'); g.addColorStop(1, 'rgba(6,10,26,.97)');
+    ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, H + 40);
+    ctx.globalCompositeOperation = 'lighter';
+    // a faint memory of the walls so you can always find the doors
+    ctx.globalAlpha = .13; wallPath(); ctx.strokeStyle = C.line; ctx.lineWidth = lw; ctx.stroke();
+    ctx.globalAlpha = .3; drawLocks(lw); ctx.globalAlpha = 1;
+    // eyes in the dark
+    for (const e of enemies) {
+      if (e.spawn > 0 || e.type === 'ghost' || Math.hypot(e.x - lx, e.y - ly) < (playing ? G.light : 4.2) * .75) continue;
+      ctx.fillStyle = C.rose; ctx.globalAlpha = .55 + Math.sin(e.t * 3) * .15;
+      const s = Math.max(1.5, T * .05);
+      ctx.fillRect(X(e.x - .08) - s / 2, Y(e.y) - s / 2, s, s); ctx.fillRect(X(e.x + .08) - s / 2, Y(e.y) - s / 2, s, s);
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `600 ${Math.round(T * .42 + 4)}px "Chakra Petch", system-ui, sans-serif`;
+    for (const f of floats) {
+      ctx.globalAlpha = Math.min(1, f.life / f.max * 2.5); ctx.fillStyle = f.c; ctx.shadowColor = f.c; ctx.shadowBlur = 6;
+      ctx.fillText(f.text, X(f.x), Y(f.y));
+    }
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    ctx.restore();
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- HUD ----------
+  const hc = {};
+  function setH(id, v) { if (hc[id] !== v) { hc[id] = v; $(id).innerHTML = v; } }
+  const heartSvg = on => `<svg viewBox="0 0 14 13" class="${on ? 'on' : 'off'}"><path d="M7 12S1 8 1 4.2A3 3 0 0 1 7 3a3 3 0 0 1 6 1.2C13 8 7 12 7 12z"/></svg>`;
+  const keySvg = (c, on) => `<svg viewBox="0 0 14 14" style="stroke:${on ? c : 'rgba(109,128,166,.45)'}"><circle cx="4" cy="7" r="2.6"/><path d="M6.6 7H13M11 7v2.4M9 7v1.6"/></svg>`;
+  const sealSvg = on => `<svg viewBox="0 0 14 14" style="stroke:${on ? C.mint : 'rgba(109,128,166,.45)'};${on ? 'fill:rgba(141,255,196,.3)' : ''}"><path d="M7 1.5L12.5 7 7 12.5 1.5 7z"/></svg>`;
+  function hud() {
+    setH('score', G.score.toLocaleString());
+    setH('best', 'Best ' + Math.max(best, G.score).toLocaleString());
+    setH('hearts', [0, 1, 2, 3, 4].map(i => heartSvg(i < hero.hearts)).join(''));
+    $('torchBar').style.transform = `scaleX(${hero.fuel / 100})`;
+    $('torch').classList.toggle('low', hero.fuel < 25);
+    setH('inv', KEYS.map((k, i) => hero.usedKeys[i] ? '' : keySvg(k.c, hero.keys[i])).join('') + hero.seals.map(sealSvg).join(''));
+    if (G.mapDirty) { G.mapDirty = false; drawMap(); }
+  }
+  function drawMap() {
+    const s = 12, m = mctx;
+    m.clearRect(0, 0, 60, 60);
+    if (!castle) return;
+    m.lineWidth = 1.2; m.lineCap = 'round';
+    for (const r of castle.rooms) {
+      const x = r.gx * s, y = r.gy * s, cx = x + s / 2, cy = y + s / 2;
+      m.strokeStyle = 'rgba(109,128,166,.18)'; m.strokeRect(x + 2.5, y + 2.5, s - 5, s - 5);
+      if (r.visited) {
+        m.strokeStyle = 'rgba(127,230,255,.55)'; m.strokeRect(x + 2.5, y + 2.5, s - 5, s - 5);
+        for (const d in r.links) {
+          const [dx, dy] = DIRS[d], e = r.links[d];
+          m.strokeStyle = e.lock >= 0 ? KEYS[e.lock].c : 'rgba(127,230,255,.55)';
+          m.beginPath(); m.moveTo(cx + dx * (s / 2 - 2.5), cy + dy * (s / 2 - 2.5)); m.lineTo(cx + dx * s / 2, cy + dy * s / 2); m.stroke();
+        }
+      }
+      if (r === room) { m.fillStyle = C.cyan; m.fillRect(x + 4, y + 4, s - 8, s - 8); }
+      else if (r.clue) { m.fillStyle = r.clue; m.beginPath(); m.arc(cx, cy, 2.2, 0, TAU); m.fill(); }
+    }
+  }
+
+  // ---------- input ----------
+  const KM = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
+               Space: 'fire', KeyJ: 'fire', KeyK: 'fire' };
+  addEventListener('keydown', e => {
+    const k = KM[e.code];
+    if ((e.code === 'Enter' || e.code === 'Space') && (G.mode === 'title' || (G.mode === 'over' && G.overT <= 0))) {
+      e.preventDefault(); startGame(); return;
+    }
+    if (k) { input[k] = true; e.preventDefault(); }
+    if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
+    if (e.code === 'KeyM') toggleMute();
+  });
+  addEventListener('keyup', e => { const k = KM[e.code]; if (k) input[k] = false; });
+  function releaseInput() { for (const k in input) input[k] = false; resetStick(); $('fireBtn').classList.remove('on'); }
+  addEventListener('blur', () => { releaseInput(); if (G.mode === 'play') togglePause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && G.mode === 'play') togglePause(); });
+  addEventListener('contextmenu', e => e.preventDefault());
+
+  const zone = $('stickZone'), base = $('stickBase'), knob = $('stickKnob'), STICK_R = 48;
+  function resetStick() {
+    stick.id = null; stick.x = stick.y = 0;
+    base.style.left = '96px'; base.style.top = Math.max(60, H - 126 - 120) + 'px';
+    knob.style.transform = ''; base.classList.remove('on');
+  }
+  zone.addEventListener('pointerdown', e => {
+    if (G.mode !== 'play' || stick.id !== null) return;
+    e.preventDefault(); initAudio();
+    const zr = zone.getBoundingClientRect();
+    stick.id = e.pointerId; stick.cx = e.clientX; stick.cy = e.clientY;
+    base.style.left = (e.clientX - zr.left) + 'px'; base.style.top = (e.clientY - zr.top) + 'px'; base.classList.add('on');
+    try { zone.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  zone.addEventListener('pointermove', e => {
+    if (e.pointerId !== stick.id) return;
+    let dx = e.clientX - stick.cx, dy = e.clientY - stick.cy;
+    const d = Math.hypot(dx, dy);
+    if (d > STICK_R) { dx *= STICK_R / d; dy *= STICK_R / d; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    const mag = Math.min(1, d / STICK_R);
+    stick.x = mag > .2 ? dx / STICK_R : 0; stick.y = mag > .2 ? dy / STICK_R : 0;
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => zone.addEventListener(ev, e => { if (e.pointerId === stick.id) resetStick(); }));
+  const fb = $('fireBtn');
+  fb.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); input.fire = true; fb.classList.add('on'); try { fb.setPointerCapture(e.pointerId); } catch (_) {} });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => fb.addEventListener(ev, () => { input.fire = false; fb.classList.remove('on'); }));
+  const markTouch = () => { if (!document.body.classList.contains('touch')) { document.body.classList.add('touch'); resize(); } };
+  if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window) document.body.classList.add('touch');
+  addEventListener('touchstart', markTouch, { once: true, passive: true });
+
+  $('startBtn').addEventListener('click', startGame);
+  $('againBtn').addEventListener('click', () => { if (G.overT <= 0) startGame(); });
+  $('resumeBtn').addEventListener('click', togglePause);
+  $('pauseBtn').addEventListener('click', () => { if (G.mode === 'play' || G.mode === 'paused') togglePause(); });
+  $('muteBtn').addEventListener('click', () => { initAudio(); toggleMute(); });
+
+  // ---------- boot ----------
+  castle = genCastle(); room = castle.rooms[START];
+  resize(); syncMute();
+  addEventListener('resize', resize);
+  if (best > 0) $('titleBest').textContent = 'Your best: ' + best.toLocaleString() + (bestTime ? '. Fastest escape ' + fmt(bestTime) + '.' : '');
+  hud();
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(.033, (now - last) / 1000); last = now;
+    if (G.mode !== 'paused') update(dt);
+    if (G.mode !== 'title') hud();
+    render();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

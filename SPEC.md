@@ -52,6 +52,7 @@ Version 1.0, October 2026
 |---|---|
 | `/` | Homepage: wordmark, play button, game list, socials, tip link |
 | `/games/shardfield/` | Shardfield |
+| `/games/duskhold/` | Duskhold |
 | `/games/<slug>/` | Each future game |
 | `/privacy/` | Privacy policy (needed before Phase 2) |
 
@@ -116,16 +117,52 @@ All points except the wave-clear bonus are multiplied by the current combo multi
 
 **Progression:** Each wave adds one more large rock (up to 11) and speeds rocks up by 8%. From wave 2, an enemy saucer appears every 12 to 20 seconds and aims more accurately each wave. Players start with 3 ships and earn an extra ship every 10,000 points.
 
-## 6. Roadmap
+## 6. Game 2: Duskhold
+
+A torch-lit castle explorer, inspired by 1980s flip-screen adventures. Walk room to room through a dark castle, search furniture for keys and clues, and find three seals to open the gate in the Sealed Crypt.
+
+**Controls**
+
+| Action | Keyboard | Touch |
+|---|---|---|
+| Move | Arrows or WASD | Drag anywhere on the left half |
+| Throw dagger | Space (or J/K) | Large button, bottom right |
+| Search | Walk into a chest, urn, shelf or locked door | Same |
+| Pause | P or Escape | Pause button, top right |
+| Mute | M | Speaker button, top right |
+
+**The castle:** A new castle is built for every run: a 5x5 grid of rooms joined as a maze, with a few extra doorways. Three locked doors (Silver, Gold and Crimson) sit on the route to the crypt, and each key is always placed somewhere you can reach before its door, so every castle can be finished.
+
+**Torch:** Only what the torch lights is visible, apart from a faint outline of the walls. The torch burns down over about three and a half minutes and the light shrinks with it. Lamp oil adds 40%. With no light, the dark takes a heart every 5 seconds.
+
+**Searching:** Chests, urns and bookshelves line the walls. Chests hold gold, oil, food, keys, seals or a spider trap. Urns smash open (walk into them or hit them with a dagger). Shelves may hold an old note, which reveals where the next missing key or seal is hidden and marks that room on the minimap.
+
+**Enemies:** Bats (fast, erratic), spiders (chase when you get close) and ghosts (slow, pass through walls, take two hits). Each room spawns new enemies when you enter it, and later parts of the castle spawn more. The player starts with 3 hearts, up to a maximum of 5.
+
+**Scoring**
+
+| Event | Points |
+|---|---|
+| New room explored | 50 |
+| Gold | 25 to 150 |
+| Old note | 100 |
+| Key | 250 |
+| Seal | 1,000 |
+| Bat / spider / ghost | 50 / 75 / 150 |
+| Escape bonus | 5,000 + 500 per heart + 20 per % of torch left + 10 per second under 15 minutes |
+
+Best score and fastest escape are saved in the browser.
+
+## 7. Roadmap
 
 ### Phase 1: Launch and build an audience
 
 Goal: a live site with 3 to 4 games and a growing social following.
 
 - Launch r3tro.io with the homepage and Shardfield
-- Post the first videos (see section 9)
+- Post the first videos (see section 10)
 - Run a poll for game 2, build it, post the process, repeat
-- Add simple privacy-friendly visitor counts (see section 11)
+- Add simple privacy-friendly visitor counts (see section 12)
 
 Move to Phase 2 when: the site has steady daily players and followers are asking to compare scores.
 
@@ -144,11 +181,11 @@ Goal: give players a reason to come back every day.
 Goal: cover costs and fund new games, without spoiling the free experience.
 
 - Tip jar link on the homepage and game-over screens
-- Game sponsorships (see section 8)
+- Game sponsorships (see section 9)
 - Optional supporter subscription with perks
 - Merchandise only if there is clear demand
 
-## 7. Phase 2 technical design: accounts and leaderboards
+## 8. Phase 2 technical design: accounts and leaderboards
 
 GitHub Pages only serves static files, so leaderboards need a hosted backend. The simplest option is a "backend as a service" such as **Supabase** or **Firebase**, both of which offer free tiers and work directly from browser JavaScript, so the site can stay on GitHub Pages.
 
@@ -170,7 +207,7 @@ GitHub Pages only serves static files, so leaderboards need a hosted backend. Th
 
 **Sign-in:** Email magic link or Google sign-in, both supported by Supabase and Firebase. Avoid storing passwords yourself.
 
-## 8. Monetisation
+## 9. Monetisation
 
 | Stream | When | How |
 |---|---|---|
@@ -181,7 +218,7 @@ GitHub Pages only serves static files, so leaderboards need a hosted backend. Th
 
 **Rules for keeping it fun:** No pay-to-win. Core games stay free. No intrusive ads in the middle of play.
 
-## 9. Content plan
+## 10. Content plan
 
 **Core story:** "I'm building an arcade website using AI, one game at a time, and you choose what I make next."
 
@@ -206,7 +243,7 @@ GitHub Pages only serves static files, so leaderboards need a hosted backend. Th
 
 **Tips:** Hook in the first second (show the game, not your face). Always show the score on screen. Put "r3tro.io" in your bio and on screen in every video. Reply to comments with video responses.
 
-## 10. Game backlog
+## 11. Game backlog
 
 Candidates for the first polls. All are quick to build and easy to show in a short clip.
 
@@ -221,11 +258,11 @@ Candidates for the first polls. All are quick to build and easy to show in a sho
 
 Each game needs its own original name. Avoid naming or styling a game after an existing one.
 
-## 11. Analytics
+## 12. Analytics
 
 Use a privacy-friendly, cookie-free analytics tool such as GoatCounter or Plausible, so no cookie banner is needed. Track: visitors per day, games started, games finished, and which game is most played. Use these numbers in your milestone videos.
 
-## 12. Legal and policy checklist
+## 13. Legal and policy checklist
 
 This is a general checklist, not legal advice. Check the rules where you live.
 
@@ -236,7 +273,7 @@ This is a general checklist, not legal advice. Check the rules where you live.
 - **AI disclosure:** Being open that the games are AI-built is part of the brand. Keep doing it.
 - **Code licence:** Decide whether the repo is public with an open-source licence (MIT is common) or public but all rights reserved. GitHub Pages works either way on a public repo.
 
-## 13. Success metrics
+## 14. Success metrics
 
 | Phase | Measure |
 |---|---|
@@ -244,7 +281,7 @@ This is a general checklist, not legal advice. Check the rules where you live.
 | 2 | Returning players, leaderboard submissions, accounts created |
 | 3 | Monthly tips and sponsorship income vs. costs |
 
-## 14. Open questions
+## 15. Open questions
 
 - Which game wins the first poll?
 - Free tier limits on the chosen leaderboard backend once traffic grows
