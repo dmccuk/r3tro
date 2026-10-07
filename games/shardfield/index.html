@@ -208,6 +208,7 @@
 
   // ---------- audio ----------
   let AC = null, nbuf = null;
+  const VOLUME = 1.1; // master volume multiplier for every sound
   function initAudio() {
     if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
     if (AC && AC.state === 'suspended') AC.resume();
@@ -217,7 +218,7 @@
     const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
     o.type = type; o.frequency.setValueAtTime(freq, t);
     if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq * slide), t + dur);
-    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    g.gain.setValueAtTime(vol * VOLUME, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
     o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur + .02);
   }
   function noise(dur, vol, freq = 900) {
@@ -229,7 +230,7 @@
     const t = AC.currentTime, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
     s.buffer = nbuf; f.type = 'lowpass';
     f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(80, t + dur);
-    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    g.gain.setValueAtTime(vol * VOLUME, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
     s.connect(f).connect(g).connect(AC.destination); s.start(t); s.stop(t + dur + .05);
   }
 
