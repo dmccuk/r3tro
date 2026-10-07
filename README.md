@@ -11,7 +11,8 @@ r3tro/
 ├── index.html                  Homepage (arcade menu)
 ├── games/
 │   ├── shardfield/index.html   Game 1: vector rock shooter
-│   └── duskhold/index.html     Game 2: torch-lit castle explorer
+│   ├── duskhold/index.html     Game 2: torch-lit castle explorer
+│   └── tumblewell/index.html   Game 3: block stacker in a turning well
 ├── CNAME                       Custom domain for GitHub Pages (r3tro.io)
 ├── .nojekyll                   Tells GitHub Pages to serve files as-is
 ├── README.md

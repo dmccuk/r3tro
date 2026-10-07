@@ -53,6 +53,7 @@ Version 1.0, October 2026
 | `/` | Homepage: wordmark, play button, game list, socials, tip link |
 | `/games/shardfield/` | Shardfield |
 | `/games/duskhold/` | Duskhold |
+| `/games/tumblewell/` | Tumblewell |
 | `/games/<slug>/` | Each future game |
 | `/privacy/` | Privacy policy (needed before Phase 2) |
 
@@ -153,16 +154,48 @@ A torch-lit castle explorer, inspired by 1980s flip-screen adventures. Walk room
 
 Best score and fastest escape are saved in the browser.
 
-## 7. Roadmap
+## 7. Game 3: Tumblewell
+
+A falling-block puzzle where the well itself turns. Every 20 to 30 seconds the whole well rotates a quarter turn clockwise, and blocks keep falling toward its floor. After two turns you are playing upside down, with blocks falling up the screen.
+
+**Controls** (screen-relative, so they always match what you see)
+
+| Action | Keyboard | Touch |
+|---|---|---|
+| Move block | The arrow (or WASD) pointing where you want it to go on screen | Drag |
+| Drop faster | The arrow pointing at the well's floor | Drag toward the floor |
+| Rotate | The arrow pointing away from the floor, or X / Z | Tap |
+| Drop instantly | Space | Flick toward the floor |
+| Pause | P or Escape | Pause button, top right |
+| Mute | M | Speaker button, top right |
+
+**The well:** 10 wide by 18 deep. The floor is lit amber so you can always tell which way is down. The turn timer under the multiplier fills down to each turn, then flashes and ticks for the last 3 seconds. Play freezes for under a second while the well turns.
+
+**Scoring**
+
+| Event | Points |
+|---|---|
+| 1 / 2 / 3 / 4 lines | 100 / 300 / 500 / 800 × level × chain |
+| Soft drop | 1 per row |
+| Hard drop | 2 per row |
+| Well turn survived | 250 × level |
+
+**Chain multiplier:** Each block in a row that clears at least one line adds +1 to the chain, up to x8. A block that clears nothing resets it to x1.
+
+**Progression:** Level goes up every 10 lines, and blocks fall faster each level.
+
+**Keeping it original:** The name, the turning well, the vector-outline art, the colours, the 10x18 well and the corner-tick landing marker are all our own. The game does not use the name or look of any existing falling-block game.
+
+## 8. Roadmap
 
 ### Phase 1: Launch and build an audience
 
 Goal: a live site with 3 to 4 games and a growing social following.
 
 - Launch r3tro.io with the homepage and Shardfield
-- Post the first videos (see section 10)
+- Post the first videos (see section 11)
 - Run a poll for game 2, build it, post the process, repeat
-- Add simple privacy-friendly visitor counts (see section 12)
+- Add simple privacy-friendly visitor counts (see section 13)
 
 Move to Phase 2 when: the site has steady daily players and followers are asking to compare scores.
 
@@ -181,11 +214,11 @@ Goal: give players a reason to come back every day.
 Goal: cover costs and fund new games, without spoiling the free experience.
 
 - Tip jar link on the homepage and game-over screens
-- Game sponsorships (see section 9)
+- Game sponsorships (see section 10)
 - Optional supporter subscription with perks
 - Merchandise only if there is clear demand
 
-## 8. Phase 2 technical design: accounts and leaderboards
+## 9. Phase 2 technical design: accounts and leaderboards
 
 GitHub Pages only serves static files, so leaderboards need a hosted backend. The simplest option is a "backend as a service" such as **Supabase** or **Firebase**, both of which offer free tiers and work directly from browser JavaScript, so the site can stay on GitHub Pages.
 
@@ -207,7 +240,7 @@ GitHub Pages only serves static files, so leaderboards need a hosted backend. Th
 
 **Sign-in:** Email magic link or Google sign-in, both supported by Supabase and Firebase. Avoid storing passwords yourself.
 
-## 9. Monetisation
+## 10. Monetisation
 
 | Stream | When | How |
 |---|---|---|
@@ -218,7 +251,7 @@ GitHub Pages only serves static files, so leaderboards need a hosted backend. Th
 
 **Rules for keeping it fun:** No pay-to-win. Core games stay free. No intrusive ads in the middle of play.
 
-## 10. Content plan
+## 11. Content plan
 
 **Core story:** "I'm building an arcade website using AI, one game at a time, and you choose what I make next."
 
@@ -243,7 +276,7 @@ GitHub Pages only serves static files, so leaderboards need a hosted backend. Th
 
 **Tips:** Hook in the first second (show the game, not your face). Always show the score on screen. Put "r3tro.io" in your bio and on screen in every video. Reply to comments with video responses.
 
-## 11. Game backlog
+## 12. Game backlog
 
 Candidates for the first polls. All are quick to build and easy to show in a short clip.
 
@@ -251,18 +284,18 @@ Candidates for the first polls. All are quick to build and easy to show in a sho
 |---|---|---|---|
 | Snake game | Classic phone snake | Speed boosts and portals | Low |
 | Brick breaker | Arkanoid-style games | Combo multiplier carried over from Shardfield | Low to medium |
-| Block stacker | Falling-block puzzles | Different piece shapes and a unique name | Medium |
+| Block stacker | Falling-block puzzles | Built as Tumblewell: the well turns every 20 to 30 seconds | Done |
 | One-tap flyer | Flappy-style games | Vector visuals, gravity flips | Low |
 | Maze chaser | Pac-style games | Original characters and maze rules | Medium |
 | Lane runner | Frogger-style games | Neon traffic, daily seeds | Medium |
 
 Each game needs its own original name. Avoid naming or styling a game after an existing one.
 
-## 12. Analytics
+## 13. Analytics
 
 Use a privacy-friendly, cookie-free analytics tool such as GoatCounter or Plausible, so no cookie banner is needed. Track: visitors per day, games started, games finished, and which game is most played. Use these numbers in your milestone videos.
 
-## 13. Legal and policy checklist
+## 14. Legal and policy checklist
 
 This is a general checklist, not legal advice. Check the rules where you live.
 
@@ -273,7 +306,7 @@ This is a general checklist, not legal advice. Check the rules where you live.
 - **AI disclosure:** Being open that the games are AI-built is part of the brand. Keep doing it.
 - **Code licence:** Decide whether the repo is public with an open-source licence (MIT is common) or public but all rights reserved. GitHub Pages works either way on a public repo.
 
-## 14. Success metrics
+## 15. Success metrics
 
 | Phase | Measure |
 |---|---|
@@ -281,7 +314,7 @@ This is a general checklist, not legal advice. Check the rules where you live.
 | 2 | Returning players, leaderboard submissions, accounts created |
 | 3 | Monthly tips and sponsorship income vs. costs |
 
-## 15. Open questions
+## 16. Open questions
 
 - Which game wins the first poll?
 - Free tier limits on the chosen leaderboard backend once traffic grows
