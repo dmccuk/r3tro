@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shardfield | r3tro.io</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Major+Mono+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060a1a;
+    --line: #d9ecff;
+    --cyan: #7fe6ff;
+    --amber: #ffb44a;
+    --rose: #ff5c8a;
+    --mint: #8dffc4;
+    --dim: #6d80a6;
+    --ui: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+    --display: "Major Mono Display", "Courier New", monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* The game is a vector monitor, so it stays dark in both themes. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #060a1a; --line: #d9ecff; }
+  }
+  :root[data-theme="dark"] { --bg: #060a1a; --line: #d9ecff; }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); background: var(--bg); overscroll-behavior: none; }
+  body {
+    height: 100%; margin: 0; background: var(--bg); color: var(--line);
+    font-family: var(--ui); overflow: hidden; overscroll-behavior: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    touch-action: none; -webkit-tap-highlight-color: transparent;
+  }
+  #wrap { position: relative; width: 100%; height: 100%; overflow: hidden; }
+  canvas { position: absolute; inset: 0; display: block; }
+
+  /* HUD */
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between;
+    align-items: flex-start; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+    pointer-events: none; opacity: 0; transition: opacity .3s;
+  }
+  body[data-mode="play"] #hud, body[data-mode="paused"] #hud, body[data-mode="over"] #hud { opacity: 1; }
+  #score { font-family: var(--display); font-size: clamp(22px, 5vw, 30px); line-height: 1; text-shadow: 0 0 10px rgba(127,230,255,.55); }
+  #best { font-size: 13px; color: var(--dim); margin-top: 6px; }
+  .hud-c { display: flex; flex-direction: column; align-items: center; min-width: 90px; }
+  #mult { font-family: var(--display); font-size: clamp(20px, 4.6vw, 28px); line-height: 1; color: var(--dim); transition: color .2s, text-shadow .2s; }
+  #mult.hot { color: var(--amber); text-shadow: 0 0 12px rgba(255,180,74,.7); }
+  #combo { width: 72px; height: 3px; margin-top: 7px; background: rgba(109,128,166,.25); border-radius: 2px; overflow: hidden; }
+  #combo i { display: block; height: 100%; background: var(--amber); transform-origin: left; transform: scaleX(0); box-shadow: 0 0 8px var(--amber); }
+  #pw { display: flex; gap: 8px; margin-top: 8px; font-size: 12px; font-weight: 600; min-height: 16px; }
+  .hud-r { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  #lives { display: flex; gap: 5px; min-height: 16px; }
+  #lives svg { width: 13px; height: 16px; stroke: var(--line); fill: none; stroke-width: 1.6; filter: drop-shadow(0 0 3px rgba(127,230,255,.6)); }
+  .btns { display: flex; gap: 8px; pointer-events: auto; }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(217,236,255,.3);
+    background: transparent; color: var(--line); font: 600 14px var(--ui); cursor: pointer; display: grid; place-items: center; padding: 0;
+  }
+  .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-btn:focus-visible, .go:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+  .icon-btn[aria-pressed="true"] { color: var(--dim); }
+
+  /* Panels */
+  .panel {
+    position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; background: radial-gradient(ellipse at center, rgba(6,10,26,.78) 0%, rgba(6,10,26,.35) 70%, transparent 100%);
+  }
+  .panel.show { display: flex; }
+  h1 {
+    font-family: var(--display); font-weight: 400; font-size: clamp(42px, 12vw, 104px); margin: 0 0 18px; line-height: 1;
+    letter-spacing: .04em; color: var(--line);
+    text-shadow: 0 0 6px rgba(127,230,255,.9), 0 0 24px rgba(127,230,255,.55), 0 0 60px rgba(127,230,255,.3);
+  }
+  h2 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 8vw, 54px); margin: 0 0 14px; text-shadow: 0 0 18px rgba(255,92,138,.6); color: var(--rose); }
+  .lede { max-width: 34ch; font-size: 17px; line-height: 1.5; margin: 0 0 28px; color: #b9cbe6; }
+  .go {
+    font: 600 18px var(--ui); color: var(--amber); background: rgba(255,180,74,.06); border: 1.5px solid var(--amber);
+    padding: 14px 40px; border-radius: 4px; cursor: pointer; letter-spacing: .02em;
+    box-shadow: 0 0 18px rgba(255,180,74,.25), inset 0 0 12px rgba(255,180,74,.12); transition: background .15s, box-shadow .15s;
+  }
+  .go:hover, .go:active { background: rgba(255,180,74,.16); box-shadow: 0 0 28px rgba(255,180,74,.45), inset 0 0 14px rgba(255,180,74,.2); }
+  .hint { font-size: 14px; color: var(--dim); margin: 22px 0 0; max-width: 36ch; line-height: 1.5; }
+  .hint-touch { display: none; }
+  body.touch .hint-touch { display: block; }
+  body.touch .hint-key { display: none; }
+  .bestline { font-size: 14px; color: var(--amber); margin: 10px 0 0; min-height: 1em; }
+  .final { font-family: var(--display); font-size: clamp(40px, 11vw, 80px); line-height: 1; text-shadow: 0 0 20px rgba(127,230,255,.6); }
+  .newbest { font-size: 16px; font-weight: 600; color: var(--amber); margin: 14px 0 0; min-height: 1.2em; }
+  .newbest.yes { animation: pulse 1s ease-in-out infinite; }
+  .stats { font-size: 15px; color: #b9cbe6; margin: 8px 0 26px; }
+  .home { margin-top: 22px; font-size: 14px; color: var(--dim); text-decoration: none; border-bottom: 1px solid rgba(109,128,166,.4); padding-bottom: 2px; }
+  .home:hover, .home:focus-visible { color: var(--cyan); border-color: var(--cyan); outline: none; }
+  @keyframes pulse { 50% { opacity: .45; } }
+
+  /* Touch controls */
+  #touch {
+    position: absolute; left: 0; right: 0; bottom: 0; display: none; justify-content: space-between; align-items: flex-end;
+    padding: 0 max(18px, env(safe-area-inset-right, 0px)) 18px max(18px, env(safe-area-inset-left, 0px)); pointer-events: none;
+  }
+  body.touch[data-mode="play"] #touch { display: flex; }
+  .cluster { display: flex; gap: 14px; align-items: flex-end; pointer-events: auto; }
+  .pad {
+    width: 66px; height: 66px; border-radius: 50%; border: 1.5px solid rgba(217,236,255,.32); background: rgba(127,230,255,.04);
+    display: grid; place-items: center; padding: 0; color: var(--line); touch-action: none;
+  }
+  .pad svg { width: 28px; height: 28px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .pad.on { background: rgba(127,230,255,.2); box-shadow: 0 0 18px rgba(127,230,255,.45); border-color: var(--cyan); }
+  .pad.fire { width: 80px; height: 80px; border-color: rgba(255,180,74,.6); color: var(--amber); }
+  .pad.fire.on { background: rgba(255,180,74,.22); box-shadow: 0 0 22px rgba(255,180,74,.55); border-color: var(--amber); }
+  @media (prefers-reduced-motion: reduce) { .newbest.yes { animation: none; } }
+</style>
+</head>
+<body data-mode="title">
+<div id="wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud">
+    <div class="hud-l"><div id="score">0</div><div id="best">Best 0</div></div>
+    <div class="hud-c"><div id="mult">x1</div><div id="combo"><i id="comboBar"></i></div><div id="pw"></div></div>
+    <div class="hud-r">
+      <div class="btns">
+        <button class="icon-btn" id="muteBtn" aria-label="Mute sound" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+        </button>
+        <button class="icon-btn" id="pauseBtn" aria-label="Pause">
+          <svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg>
+        </button>
+      </div>
+      <div id="lives"></div>
+    </div>
+  </div>
+
+  <section class="panel show" id="p-title">
+    <h1>shardfield</h1>
+    <p class="lede">Split the rocks. Chain hits fast to push your multiplier to x8. Grab drops for triple shot, rapid fire, shields and novas.</p>
+    <button class="go" id="startBtn">Start game</button>
+    <p class="hint hint-key">Arrows or WASD to turn and thrust, Space to fire, P to pause.</p>
+    <p class="hint hint-touch">Left buttons turn your ship. Right buttons thrust and fire.</p>
+    <p class="bestline" id="titleBest"></p>
+    <a class="home" href="../../">More games on r3tro</a>
+  </section>
+
+  <section class="panel" id="p-paused">
+    <h2 style="color:var(--line);text-shadow:0 0 18px rgba(127,230,255,.6)">paused</h2>
+    <button class="go" id="resumeBtn">Resume</button>
+  </section>
+
+  <section class="panel" id="p-over">
+    <h2>game over</h2>
+    <div class="final" id="finalScore">0</div>
+    <p class="newbest" id="newBest"></p>
+    <p class="stats" id="stats"></p>
+    <button class="go" id="againBtn">Play again</button>
+    <a class="home" href="../../">More games on r3tro</a>
+  </section>
+
+  <div id="touch">
+    <div class="cluster">
+      <button class="pad" data-k="left" aria-label="Turn left"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="pad" data-k="right" aria-label="Turn right"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+    <div class="cluster">
+      <button class="pad" data-k="thrust" aria-label="Thrust"><svg viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg></button>
+      <button class="pad fire" data-k="fire" aria-label="Fire"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const wrapEl = $('wrap'), cv = $('cv'), ctx = cv.getContext('2d');
+  const TAU = Math.PI * 2, rand = (a, b) => a + Math.random() * (b - a);
+  const C = { line: '#d9ecff', cyan: '#7fe6ff', amber: '#ffb44a', rose: '#ff5c8a', mint: '#8dffc4' };
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const POW = {
+    triple: { c: C.cyan,  l: 'T', name: 'Triple shot', dur: 9 },
+    rapid:  { c: C.amber, l: 'R', name: 'Rapid fire',  dur: 9 },
+    shield: { c: C.mint,  l: 'S', name: 'Shield',      dur: 14 },
+    nova:   { c: C.rose,  l: 'N', name: 'Nova',        dur: 0 }
+  };
+
+  let W = 0, H = 0, S = 1, stars = [];
+  function resize() {
+    const r = wrapEl.getBoundingClientRect(); W = r.width; H = r.height;
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    S = Math.max(.62, Math.min(1.15, Math.min(W, H) / 720));
+    stars = [];
+    const n = Math.round(W * H / 9000);
+    for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, b: Math.random() });
+    ctx.fillStyle = '#060a1a'; ctx.fillRect(0, 0, W, H);
+    if (ship) { ship.x = Math.min(ship.x, W); ship.y = Math.min(ship.y, H); ship.r = 13 * S; }
+  }
+
+  // ---------- storage ----------
+  let best = 0, muted = false;
+  try { best = parseInt(localStorage.getItem('shardfield-best'), 10) || 0; } catch (e) {}
+  try { muted = localStorage.getItem('shardfield-muted') === '1'; } catch (e) {}
+  const saveBest = () => { try { localStorage.setItem('shardfield-best', String(best)); } catch (e) {} };
+
+  // ---------- audio ----------
+  let AC = null, nbuf = null;
+  function initAudio() {
+    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (AC && AC.state === 'suspended') AC.resume();
+  }
+  function beep(freq, dur, type = 'square', vol = .05, slide = 0) {
+    if (!AC || muted) return;
+    const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq * slide), t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur + .02);
+  }
+  function noise(dur, vol, freq = 900) {
+    if (!AC || muted) return;
+    if (!nbuf) {
+      nbuf = AC.createBuffer(1, AC.sampleRate * 1.5, AC.sampleRate);
+      const d = nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const t = AC.currentTime, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+    s.buffer = nbuf; f.type = 'lowpass';
+    f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(80, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f).connect(g).connect(AC.destination); s.start(t); s.stop(t + dur + .05);
+  }
+
+  // ---------- state ----------
+  let ship = null, saucer = null;
+  let rocks = [], bullets = [], ebullets = [], parts = [], pows = [], floats = [], rings = [];
+  const G = { mode: 'title', score: 0, lives: 3, wave: 0, mult: 1, chain: 0, comboT: 0, nextLife: 10000, maxMult: 1,
+              waveT: 0, cleared: false, shake: 0, beatT: 1, beatHi: false, saucerT: 15, deadT: 0, speedMul: 1, overT: 0 };
+  const pw = { triple: 0, rapid: 0, shield: 0 };
+  const input = { left: false, right: false, thrust: false, fire: false };
+
+  function setMode(m) { G.mode = m; document.body.dataset.mode = m; }
+  function showPanel(id) { document.querySelectorAll('.panel').forEach(p => p.classList.toggle('show', p.id === id)); }
+
+  const newShip = () => ({ x: W / 2, y: H / 2, vx: 0, vy: 0, a: -Math.PI / 2, r: 13 * S, alive: true, inv: 2.5, cd: 0 });
+
+  function makeRock(x, y, size, mul, ang) {
+    const n = 9 + size * 2, pts = [];
+    for (let i = 0; i < n; i++) pts.push(rand(.7, 1.1));
+    const a = ang ?? rand(0, TAU), sp = rand(.7, 1.3) * [0, 115, 72, 42][size] * mul * S;
+    return { x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, size, r: [0, 15, 27, 46][size] * S, pts,
+             rot: rand(0, TAU), spin: rand(-1, 1) * (1.4 - size * .3), nm: false };
+  }
+  function wrapO(o) {
+    const m = o.r || 0;
+    if (o.x < -m) o.x += W + 2 * m; else if (o.x > W + m) o.x -= W + 2 * m;
+    if (o.y < -m) o.y += H + 2 * m; else if (o.y > H + m) o.y -= H + 2 * m;
+  }
+  function addFloat(x, y, text, c, life = 1, big = false) { floats.push({ x, y, text, c, life, max: life, big }); }
+  function explode(x, y, n, c) {
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, TAU), sp = rand(40, 240) * S, l = rand(.35, .9);
+      parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: l, max: l, c });
+    }
+  }
+
+  function spawnWave() {
+    G.wave++; G.speedMul = 1 + (G.wave - 1) * .08;
+    const n = Math.min(3 + G.wave, 11);
+    for (let i = 0; i < n; i++) {
+      let x, y, tries = 0;
+      do {
+        if (Math.random() < .5) { x = Math.random() < .5 ? 0 : W; y = rand(0, H); }
+        else { x = rand(0, W); y = Math.random() < .5 ? 0 : H; }
+        tries++;
+      } while (ship && ship.alive && Math.hypot(x - ship.x, y - ship.y) < 220 * S && tries < 20);
+      rocks.push(makeRock(x, y, 3, G.speedMul));
+    }
+    addFloat(W / 2, H * .38, 'Wave ' + G.wave, C.line, 2.2, true);
+    if (G.wave >= 2) G.saucerT = rand(9, 16);
+  }
+
+  function addScore(base, x, y) {
+    const p = base * G.mult; G.score += p;
+    if (G.mult > 1 && x != null) addFloat(x, y, '+' + p, C.amber, .8);
+    while (G.score >= G.nextLife) {
+      G.lives++; G.nextLife += 10000;
+      addFloat(W / 2, H * .3, 'Extra ship', C.mint, 1.8, true);
+      beep(660, .12, 'triangle', .07, 1.5); setTimeout(() => beep(990, .16, 'triangle', .07, 1.3), 110);
+    }
+  }
+  function addKill() {
+    G.chain++; G.comboT = 2.4;
+    const m = Math.min(8, 1 + Math.floor(G.chain / 4));
+    if (m > G.mult) {
+      addFloat(W / 2, H * .55, 'x' + m, C.amber, 1.1, true);
+      beep(330 * Math.pow(1.12, m * 2), .16, 'triangle', .06, 1.5);
+    }
+    G.mult = m; G.maxMult = Math.max(G.maxMult, m);
+  }
+
+  function hitRock(i, dx = 0, dy = 0) {
+    const r = rocks[i]; rocks.splice(i, 1);
+    addKill(); addScore([0, 100, 50, 20][r.size], r.x, r.y);
+    explode(r.x, r.y, 6 + r.size * 5, C.line);
+    G.shake = Math.min(14, G.shake + r.size * 1.6);
+    noise(.1 + r.size * .09, .07 + r.size * .035, 500 + r.size * 300);
+    if (r.size > 1) {
+      const base = (dx || dy) ? Math.atan2(dy, dx) : rand(0, TAU);
+      for (const s of [-1, 1]) rocks.push(makeRock(r.x, r.y, r.size - 1, G.speedMul * 1.04, base + s * rand(.4, 1.1)));
+    }
+    if (pows.length < 3 && Math.random() < (r.size === 3 ? .13 : .07)) spawnPow(r.x, r.y);
+  }
+  function spawnPow(x, y) {
+    const types = Object.keys(POW);
+    pows.push({ x, y, vx: rand(-30, 30) * S, vy: rand(-30, 30) * S, t: types[Math.floor(Math.random() * types.length)], life: 9, rot: 0 });
+  }
+  function nova(x, y) {
+    const R = 240 * S;
+    rings.push({ x, y, max: R, life: .55, c: C.rose });
+    const hit = rocks.filter(r => Math.hypot(r.x - x, r.y - y) < R + r.r);
+    for (const r of hit) { const i = rocks.indexOf(r); if (i >= 0) hitRock(i, r.x - x, r.y - y); }
+    if (saucer && Math.hypot(saucer.x - x, saucer.y - y) < R) killSaucer();
+    G.shake = 16; noise(.6, .2, 1500);
+  }
+  function useShield() {
+    pw.shield = 0; ship.inv = 1;
+    rings.push({ x: ship.x, y: ship.y, max: 70 * S, life: .4, c: C.mint });
+    beep(300, .25, 'sawtooth', .05, 2);
+  }
+  function killShip() {
+    ship.alive = false; G.lives--; G.deadT = 1.6; G.chain = 0; G.mult = 1; G.comboT = 0;
+    pw.triple = pw.rapid = pw.shield = 0;
+    explode(ship.x, ship.y, 40, C.cyan);
+    for (let i = 0; i < 5; i++) parts.push({ seg: true, x: ship.x, y: ship.y, vx: rand(-90, 90) * S, vy: rand(-90, 90) * S,
+      a: rand(0, TAU), spin: rand(-5, 5), len: rand(8, 16) * S, life: 1.6, max: 1.6, c: C.line });
+    G.shake = 22; noise(1.1, .25, 1200); beep(220, .6, 'sawtooth', .06, .25);
+  }
+  function spawnSaucer() {
+    const dir = Math.random() < .5 ? 1 : -1, by = rand(H * .15, H * .85);
+    saucer = { x: dir > 0 ? -30 : W + 30, y: by, by, vx: dir * rand(70, 110) * S, t: 0, r: 15 * S, fireT: 1.2, snd: 0, hi: false };
+  }
+  function killSaucer() {
+    explode(saucer.x, saucer.y, 30, C.rose); addKill(); addScore(500, saucer.x, saucer.y);
+    if (pows.length < 3 && Math.random() < .6) spawnPow(saucer.x, saucer.y);
+    G.shake = 12; noise(.5, .18, 1400); saucer = null; G.saucerT = rand(12, 20);
+  }
+  function fire() {
+    ship.cd = pw.rapid > 0 ? .085 : .2;
+    if (bullets.length > 40) return;
+    const BS = 560 * S, spreads = pw.triple > 0 ? [-.16, 0, .16] : [0];
+    for (const sp of spreads) {
+      const a = ship.a + sp;
+      bullets.push({ x: ship.x + Math.cos(ship.a) * ship.r, y: ship.y + Math.sin(ship.a) * ship.r,
+                     vx: Math.cos(a) * BS + ship.vx * .4, vy: Math.sin(a) * BS + ship.vy * .4, life: .85 });
+    }
+    beep(880, .07, 'square', .03, .5);
+  }
+
+  function startGame() {
+    if (G.mode === 'play') return;
+    initAudio();
+    rocks = []; bullets = []; ebullets = []; pows = []; floats = []; rings = []; saucer = null;
+    Object.assign(G, { score: 0, lives: 3, wave: 0, mult: 1, chain: 0, comboT: 0, nextLife: 10000, maxMult: 1,
+                       waveT: 0, cleared: false, shake: 0, deadT: 0, beatT: 1 });
+    pw.triple = pw.rapid = pw.shield = 0;
+    ship = newShip(); setMode('play'); showPanel(null); spawnWave();
+  }
+  function gameOver() {
+    setMode('over'); G.overT = .8;
+    const isBest = G.score > best && G.score > 0;
+    if (isBest) { best = G.score; saveBest(); }
+    $('finalScore').textContent = G.score.toLocaleString();
+    const nb = $('newBest');
+    nb.textContent = isBest ? 'New best score' : (best > G.score ? (best - G.score).toLocaleString() + ' short of your best' : '');
+    nb.classList.toggle('yes', isBest);
+    $('stats').textContent = `Reached wave ${G.wave}. Top multiplier x${G.maxMult}.`;
+    showPanel('p-over');
+    setTimeout(() => $('againBtn').focus({ preventScroll: true }), 50);
+  }
+  function togglePause() {
+    if (G.mode === 'play') { setMode('paused'); showPanel('p-paused'); for (const k in input) input[k] = false; }
+    else if (G.mode === 'paused') { setMode('play'); showPanel(null); initAudio(); }
+  }
+  function toggleMute() {
+    muted = !muted;
+    try { localStorage.setItem('shardfield-muted', muted ? '1' : '0'); } catch (e) {}
+    syncMute();
+  }
+  function syncMute() {
+    $('muteBtn').setAttribute('aria-pressed', String(muted));
+    $('muteBtn').setAttribute('aria-label', muted ? 'Turn sound on' : 'Mute sound');
+    $('waves').style.display = muted ? 'none' : '';
+  }
+
+  // ---------- update ----------
+  function update(dt) {
+    for (const r of rocks) { r.x += r.vx * dt; r.y += r.vy * dt; r.rot += r.spin * dt; wrapO(r); }
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i], f = Math.pow(p.seg ? .7 : .25, dt);
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= f; p.vy *= f;
+      if (p.seg) p.a += p.spin * dt;
+      if ((p.life -= dt) <= 0) parts.splice(i, 1);
+    }
+    for (let i = rings.length - 1; i >= 0; i--) if ((rings[i].life -= dt) <= 0) rings.splice(i, 1);
+    for (let i = floats.length - 1; i >= 0; i--) {
+      const f = floats[i]; if (!f.big) f.y -= 24 * dt;
+      if ((f.life -= dt) <= 0) floats.splice(i, 1);
+    }
+    G.shake = Math.max(0, G.shake - dt * 38);
+    if (G.mode === 'over') G.overT -= dt;
+    if (G.mode !== 'play') return;
+
+    // ship
+    if (ship.alive) {
+      if (input.left) ship.a -= 4.4 * dt;
+      if (input.right) ship.a += 4.4 * dt;
+      if (input.thrust) {
+        const TH = 300 * S;
+        ship.vx += Math.cos(ship.a) * TH * dt; ship.vy += Math.sin(ship.a) * TH * dt;
+        if (Math.random() < .6) {
+          const a = ship.a + Math.PI + rand(-.35, .35), sp = rand(80, 160) * S;
+          parts.push({ x: ship.x - Math.cos(ship.a) * ship.r * .6, y: ship.y - Math.sin(ship.a) * ship.r * .6,
+                       vx: Math.cos(a) * sp + ship.vx, vy: Math.sin(a) * sp + ship.vy, life: .25, max: .25, c: C.amber });
+        }
+      }
+      const f = Math.pow(.62, dt); ship.vx *= f; ship.vy *= f;
+      const sp = Math.hypot(ship.vx, ship.vy), MAX = 430 * S;
+      if (sp > MAX) { ship.vx *= MAX / sp; ship.vy *= MAX / sp; }
+      ship.x += ship.vx * dt; ship.y += ship.vy * dt; wrapO(ship);
+      ship.cd -= dt; ship.inv -= dt;
+      if (input.fire && ship.cd <= 0) fire();
+      pw.triple = Math.max(0, pw.triple - dt); pw.rapid = Math.max(0, pw.rapid - dt); pw.shield = Math.max(0, pw.shield - dt);
+    } else {
+      G.deadT -= dt;
+      if (G.deadT <= 0) {
+        if (G.lives > 0) {
+          const clear = rocks.every(r => Math.hypot(r.x - W / 2, r.y - H / 2) > r.r + 110 * S);
+          if (clear || G.deadT < -2.5) ship = newShip();
+        } else { gameOver(); return; }
+      }
+    }
+
+    // player bullets
+    outer: for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i];
+      b.x += b.vx * dt; b.y += b.vy * dt; wrapO(b);
+      if ((b.life -= dt) <= 0) { bullets.splice(i, 1); continue; }
+      for (let j = rocks.length - 1; j >= 0; j--) {
+        const r = rocks[j];
+        if ((b.x - r.x) ** 2 + (b.y - r.y) ** 2 < r.r * r.r) { bullets.splice(i, 1); hitRock(j, b.vx, b.vy); continue outer; }
+      }
+      if (saucer && Math.hypot(b.x - saucer.x, b.y - saucer.y) < saucer.r + 3) { bullets.splice(i, 1); killSaucer(); }
+    }
+
+    // ship vs rocks, close calls
+    if (ship.alive) {
+      for (let j = rocks.length - 1; j >= 0; j--) {
+        const r = rocks[j], d = Math.hypot(r.x - ship.x, r.y - ship.y);
+        if (ship.inv <= 0 && d < r.r + ship.r * .75) {
+          if (pw.shield > 0) { useShield(); hitRock(j, r.x - ship.x, r.y - ship.y); } else killShip();
+          break;
+        }
+        const zone = r.r + ship.r + 18 * S;
+        if (d < zone && ship.inv <= 0) r.nm = true;
+        else if (r.nm && d >= zone) {
+          r.nm = false; addScore(25, null, null);
+          addFloat(ship.x, ship.y - 28 * S, 'Close call +' + 25 * G.mult, C.mint, .9);
+          beep(1200, .05, 'sine', .04, 1.4);
+        }
+      }
+    }
+
+    // saucer
+    if (!saucer && G.wave >= 2 && ship.alive) { G.saucerT -= dt; if (G.saucerT <= 0) spawnSaucer(); }
+    if (saucer) {
+      const s = saucer; s.t += dt; s.x += s.vx * dt; s.y = s.by + Math.sin(s.t * 2) * 40 * S;
+      if ((s.snd -= dt) <= 0) { s.hi = !s.hi; beep(s.hi ? 720 : 600, .1, 'triangle', .022); s.snd = .18; }
+      if ((s.fireT -= dt) <= 0 && ship.alive) {
+        const err = Math.max(.07, .5 - G.wave * .04), a = Math.atan2(ship.y - s.y, ship.x - s.x) + rand(-err, err), BS = 290 * S;
+        ebullets.push({ x: s.x, y: s.y, vx: Math.cos(a) * BS, vy: Math.sin(a) * BS, life: 1.7 });
+        s.fireT = rand(1, 1.6); beep(260, .1, 'square', .03, .6);
+      }
+      if (ship.alive && ship.inv <= 0 && Math.hypot(ship.x - s.x, ship.y - s.y) < s.r + ship.r * .7) {
+        if (pw.shield > 0) { useShield(); killSaucer(); } else { killSaucer(); killShip(); }
+      } else if (s.x < -60 || s.x > W + 60) { saucer = null; G.saucerT = rand(12, 20); }
+    }
+    for (let i = ebullets.length - 1; i >= 0; i--) {
+      const b = ebullets[i]; b.x += b.vx * dt; b.y += b.vy * dt; wrapO(b);
+      if ((b.life -= dt) <= 0) { ebullets.splice(i, 1); continue; }
+      if (ship.alive && ship.inv <= 0 && Math.hypot(b.x - ship.x, b.y - ship.y) < ship.r * .8) {
+        ebullets.splice(i, 1);
+        if (pw.shield > 0) useShield(); else killShip();
+      }
+    }
+
+    // power-ups
+    for (let i = pows.length - 1; i >= 0; i--) {
+      const p = pows[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += 1.5 * dt; wrapO(p);
+      if ((p.life -= dt) <= 0) { pows.splice(i, 1); continue; }
+      if (ship.alive && Math.hypot(p.x - ship.x, p.y - ship.y) < ship.r + 16 * S) {
+        pows.splice(i, 1);
+        const m = POW[p.t];
+        if (p.t === 'nova') nova(ship.x, ship.y); else pw[p.t] = m.dur;
+        addFloat(p.x, p.y - 20 * S, m.name, m.c, 1.2);
+        beep(520, .09, 'sine', .08, 2); setTimeout(() => beep(780, .1, 'sine', .07, 1.5), 70);
+      }
+    }
+
+    // combo decay
+    if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0) { G.chain = 0; G.mult = 1; } }
+
+    // waves
+    if (!G.cleared && rocks.length === 0) {
+      G.cleared = true; G.waveT = 2.2;
+      const b = 250 * G.wave; G.score += b;
+      addFloat(W / 2, H * .45, 'Wave clear +' + b, C.mint, 1.9, true);
+      [523, 659, 784].forEach((f, i) => setTimeout(() => beep(f, .14, 'triangle', .06), i * 90));
+    } else if (G.cleared) {
+      G.waveT -= dt; if (G.waveT <= 0) { G.cleared = false; spawnWave(); }
+    }
+
+    // heartbeat speeds up as the field empties
+    if (!G.cleared && rocks.length) {
+      G.beatT -= dt;
+      if (G.beatT <= 0) {
+        G.beatHi = !G.beatHi; beep(G.beatHi ? 62 : 52, .12, 'square', .08, .8);
+        G.beatT = Math.max(.24, .3 + rocks.length * .028 - G.wave * .01);
+      }
+    }
+  }
+
+  // ---------- render ----------
+  function glow(color, w) {
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = .25; ctx.lineWidth = w * 3.5; ctx.stroke();
+    ctx.globalAlpha = 1; ctx.lineWidth = w; ctx.stroke();
+  }
+  function poly(x, y, a, P, close = true) {
+    const c = Math.cos(a), s = Math.sin(a);
+    ctx.beginPath();
+    P.forEach(([px, py], i) => { const X = x + px * c - py * s, Y = y + px * s + py * c; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+    if (close) ctx.closePath();
+  }
+  function render() {
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.fillStyle = 'rgba(6,10,26,0.42)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#8ea6d8';
+    for (const s of stars) { ctx.globalAlpha = .12 + s.b * .3; ctx.fillRect(s.x, s.y, 1, 1); }
+    ctx.globalAlpha = 1;
+
+    ctx.save();
+    if (G.shake > 0 && !RM) ctx.translate(rand(-G.shake, G.shake) * .5, rand(-G.shake, G.shake) * .5);
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+    for (const r of rocks) {
+      const n = r.pts.length;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const a = r.rot + i / n * TAU, rr = r.r * r.pts[i];
+        const x = r.x + Math.cos(a) * rr, y = r.y + Math.sin(a) * rr;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.closePath(); glow(C.line, 1.5);
+    }
+
+    for (const p of pows) {
+      if (p.life < 2 && Math.floor(p.life * 8) % 2) continue;
+      const m = POW[p.t], R = 12 * S;
+      poly(p.x, p.y, p.rot, [[R, 0], [0, R], [-R, 0], [0, -R]]); glow(m.c, 1.6);
+      ctx.globalAlpha = 1; ctx.fillStyle = m.c; ctx.font = `600 ${Math.round(12 * S + 2)}px "Chakra Petch", system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(m.l, p.x, p.y + 1);
+    }
+
+    for (const b of bullets) { ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - b.vx * .025, b.y - b.vy * .025); glow(C.cyan, 2); }
+    for (const b of ebullets) { ctx.beginPath(); ctx.arc(b.x, b.y, 2.5 * S, 0, TAU); glow(C.rose, 1.6); }
+
+    if (saucer) {
+      const s = saucer, r = s.r;
+      poly(s.x, s.y, 0, [[-r, 0], [-r * .55, -r * .35], [r * .55, -r * .35], [r, 0], [r * .55, r * .35], [-r * .55, r * .35]]); glow(C.rose, 1.5);
+      poly(s.x, s.y, 0, [[-r, 0], [r, 0]], false); glow(C.rose, 1.2);
+      poly(s.x, s.y, 0, [[-r * .3, -r * .35], [-r * .18, -r * .7], [r * .18, -r * .7], [r * .3, -r * .35]], false); glow(C.rose, 1.2);
+    }
+
+    if (ship && ship.alive && G.mode !== 'title') {
+      const blink = ship.inv > 0 && Math.floor(ship.inv * 10) % 2;
+      if (!blink) {
+        const r = ship.r;
+        poly(ship.x, ship.y, ship.a, [[r, 0], [-r * .8, r * .68], [-r * .45, 0], [-r * .8, -r * .68]]); glow(C.cyan, 1.7);
+        if (input.thrust && Math.random() > .2) {
+          poly(ship.x, ship.y, ship.a, [[-r * .55, r * .32], [-r * rand(1.15, 1.7), 0], [-r * .55, -r * .32]], false); glow(C.amber, 1.5);
+        }
+      }
+      if (pw.shield > 0 && !(pw.shield < 2 && Math.floor(pw.shield * 8) % 2)) {
+        ctx.beginPath(); ctx.arc(ship.x, ship.y, ship.r * 1.75, 0, TAU);
+        ctx.strokeStyle = C.mint; ctx.globalAlpha = .35 + Math.sin(performance.now() / 120) * .15; ctx.lineWidth = 1.4; ctx.stroke(); ctx.globalAlpha = 1;
+      }
+    }
+
+    for (const p of parts) {
+      ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.strokeStyle = p.c; ctx.lineWidth = 1.4; ctx.beginPath();
+      if (p.seg) {
+        const dx = Math.cos(p.a) * p.len / 2, dy = Math.sin(p.a) * p.len / 2;
+        ctx.moveTo(p.x - dx, p.y - dy); ctx.lineTo(p.x + dx, p.y + dy);
+      } else { ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * .035, p.y - p.vy * .035); }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (const g of rings) {
+      const k = 1 - g.life / .55;
+      ctx.beginPath(); ctx.arc(g.x, g.y, Math.max(1, g.max * Math.min(1, k * 1.2)), 0, TAU);
+      ctx.globalAlpha = Math.max(0, g.life / .55); glow(g.c, 2);
+    }
+    ctx.restore();
+
+    ctx.globalCompositeOperation = 'lighter'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const f of floats) {
+      ctx.globalAlpha = Math.min(1, f.life / f.max * 2.5);
+      ctx.fillStyle = f.c;
+      ctx.font = f.big ? `600 ${Math.round(26 * S + 8)}px "Chakra Petch", system-ui, sans-serif` : `600 ${Math.round(11 * S + 4)}px "Chakra Petch", system-ui, sans-serif`;
+      ctx.shadowColor = f.c; ctx.shadowBlur = f.big ? 16 : 6;
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- HUD ----------
+  const hc = {};
+  const shipSvg = '<svg viewBox="0 0 13 16"><path d="M6.5 1L12 15 6.5 11.5 1 15z"/></svg>';
+  function setT(id, v, html) { if (hc[id] !== v) { hc[id] = v; html ? ($(id).innerHTML = v) : ($(id).textContent = v); } }
+  function hud() {
+    setT('score', G.score.toLocaleString());
+    setT('best', 'Best ' + Math.max(best, G.score).toLocaleString());
+    setT('mult', 'x' + G.mult);
+    $('mult').classList.toggle('hot', G.mult > 1);
+    $('comboBar').style.transform = `scaleX(${Math.max(0, G.comboT / 2.4)})`;
+    setT('lives', shipSvg.repeat(Math.max(0, Math.min(G.lives, 8))), true);
+    const chips = ['triple', 'rapid', 'shield'].filter(k => pw[k] > 0)
+      .map(k => `<span style="color:${POW[k].c}">${POW[k].name} ${Math.ceil(pw[k])}</span>`).join('');
+    setT('pw', chips, true);
+  }
+
+  // ---------- input ----------
+  const KM = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'thrust', KeyW: 'thrust', Space: 'fire', KeyJ: 'fire', KeyK: 'fire' };
+  addEventListener('keydown', e => {
+    const k = KM[e.code];
+    if ((e.code === 'Enter' || e.code === 'Space') && (G.mode === 'title' || (G.mode === 'over' && G.overT <= 0))) {
+      e.preventDefault(); startGame(); return;
+    }
+    if (k) { input[k] = true; e.preventDefault(); }
+    if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
+    if (e.code === 'KeyM') toggleMute();
+  });
+  addEventListener('keyup', e => { const k = KM[e.code]; if (k) input[k] = false; });
+  addEventListener('blur', () => { for (const k in input) input[k] = false; if (G.mode === 'play') togglePause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && G.mode === 'play') togglePause(); });
+  addEventListener('contextmenu', e => e.preventDefault());
+
+  document.querySelectorAll('[data-k]').forEach(b => {
+    const k = b.dataset.k;
+    const on = e => { e.preventDefault(); initAudio(); input[k] = true; b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (_) {} };
+    const off = () => { input[k] = false; b.classList.remove('on'); };
+    b.addEventListener('pointerdown', on);
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, off));
+  });
+  const markTouch = () => document.body.classList.add('touch');
+  if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window) markTouch();
+  addEventListener('touchstart', markTouch, { once: true, passive: true });
+
+  $('startBtn').addEventListener('click', startGame);
+  $('againBtn').addEventListener('click', () => { if (G.overT <= 0) startGame(); });
+  $('resumeBtn').addEventListener('click', togglePause);
+  $('pauseBtn').addEventListener('click', () => { if (G.mode === 'play' || G.mode === 'paused') togglePause(); });
+  $('muteBtn').addEventListener('click', () => { initAudio(); toggleMute(); });
+
+  // ---------- boot ----------
+  resize(); syncMute();
+  addEventListener('resize', resize);
+  if (best > 0) $('titleBest').textContent = 'Your best: ' + best.toLocaleString();
+  for (let i = 0; i < 7; i++) rocks.push(makeRock(rand(0, W), rand(0, H), 1 + Math.floor(Math.random() * 3), .7));
+  hud();
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(.033, (now - last) / 1000); last = now;
+    if (G.mode !== 'paused') update(dt);
+    if (G.mode !== 'title') hud();
+    render();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

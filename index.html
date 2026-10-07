@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>r3tro | simple arcade games, free to play</title>
+<meta name="description" content="Simple, addictive arcade games you can play in seconds. Free, no sign-up. Every game built with AI, step by step, in public.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☄️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Major+Mono+Display&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060a1a; --line: #d9ecff; --soft: #b9cbe6; --dim: #6d80a6;
+    --cyan: #7fe6ff; --amber: #ffb44a; --rose: #ff5c8a; --mint: #8dffc4;
+    --ui: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+    --display: "Major Mono Display", "Courier New", monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #060a1a; } }
+  :root[data-theme="dark"] { --bg: #060a1a; }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); background: var(--bg); }
+  body { margin: 0; background: var(--bg); color: var(--line); font-family: var(--ui); font-size: 17px; line-height: 1.55; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+  .hero { position: relative; min-height: 78vh; display: grid; place-items: center; overflow: hidden; }
+  .hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .hero-inner { position: relative; text-align: center; padding: 48px 20px; }
+  .mark {
+    font-family: var(--display); font-weight: 400; margin: 0; line-height: .9;
+    font-size: clamp(76px, 22vw, 200px); letter-spacing: .02em;
+    text-shadow: 0 0 8px rgba(127,230,255,.9), 0 0 32px rgba(127,230,255,.5), 0 0 90px rgba(127,230,255,.3);
+  }
+  .tag { max-width: 30ch; margin: 22px auto 34px; font-size: 19px; color: var(--soft); }
+  .go {
+    display: inline-block; font: 600 18px var(--ui); color: var(--amber); text-decoration: none;
+    border: 1.5px solid var(--amber); background: rgba(255,180,74,.06); padding: 14px 38px; border-radius: 4px;
+    box-shadow: 0 0 18px rgba(255,180,74,.25), inset 0 0 12px rgba(255,180,74,.12); transition: background .15s, box-shadow .15s;
+  }
+  .go:hover { background: rgba(255,180,74,.16); box-shadow: 0 0 28px rgba(255,180,74,.45), inset 0 0 14px rgba(255,180,74,.2); }
+
+  main { max-width: 760px; margin: 0 auto; padding: 0 20px 64px; }
+  h2 { font-family: var(--display); font-weight: 400; font-size: 30px; margin: 56px 0 6px; }
+  .sub { color: var(--dim); margin: 0 0 22px; }
+
+  .games { list-style: none; margin: 0; padding: 0; border-top: 1px solid rgba(109,128,166,.25); }
+  .game { display: grid; grid-template-columns: 64px 1fr auto; gap: 18px; align-items: center; padding: 20px 0; border-bottom: 1px solid rgba(109,128,166,.25); }
+  .game svg { width: 64px; height: 64px; fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .game h3 { margin: 0; font-size: 22px; font-weight: 600; }
+  .game p { margin: 2px 0 0; color: var(--soft); font-size: 15px; }
+  .play { font-weight: 600; color: var(--cyan); text-decoration: none; border: 1.5px solid rgba(127,230,255,.5); padding: 9px 20px; border-radius: 4px; white-space: nowrap; }
+  .play:hover { background: rgba(127,230,255,.12); }
+  .game.soon h3, .game.soon svg { opacity: .45; }
+  .vote { font-weight: 600; color: var(--amber); white-space: nowrap; font-size: 15px; }
+
+  .build { margin-top: 12px; color: var(--soft); max-width: 60ch; }
+  .socials { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+  .socials a { text-decoration: none; border: 1.5px solid rgba(217,236,255,.3); padding: 9px 18px; border-radius: 4px; font-weight: 600; }
+  .socials a:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  footer { max-width: 760px; margin: 0 auto; padding: 28px 20px 48px; color: var(--dim); font-size: 14px; border-top: 1px solid rgba(109,128,166,.25); }
+  footer a { color: var(--amber); }
+
+  @media (max-width: 520px) {
+    .game { grid-template-columns: 48px 1fr; }
+    .game svg { width: 48px; height: 48px; }
+    .game .play, .game .vote { grid-column: 2; justify-self: start; }
+  }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <canvas id="field" aria-hidden="true"></canvas>
+    <div class="hero-inner">
+      <h1 class="mark">r3tro</h1>
+      <p class="tag">Simple arcade games and sysadmin skill tests you can play in seconds. Free, no sign-up.</p>
+      <a class="go" href="games/shardfield/">Play Shardfield</a>
+    </div>
+  </header>
+
+  <main>
+    <h2>games</h2>
+    <p class="sub">New games added as they're built. Your best scores save in your browser.</p>
+    <ul class="games">
+      <!-- To add a game: copy this <li>, change the link, icon, title and description. -->
+      <li class="game">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M14 20l10-8 14 3 8 10-4 13-12 6-12-4-6-11z" stroke="#d9ecff"/>
+          <path d="M44 50l8-12 3 14z" stroke="#7fe6ff"/>
+          <path d="M40 41l-4-6" stroke="#7fe6ff"/>
+        </svg>
+        <div>
+          <h3>Shardfield</h3>
+          <p>Split the rocks, chain your hits, push the multiplier to x8.</p>
+        </div>
+        <a class="play" href="games/shardfield/">Play</a>
+      </li>
+      <li class="game soon">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="12" width="40" height="40" rx="4" stroke="#d9ecff" stroke-dasharray="5 6"/><path d="M27 27a5 5 0 1 1 7 4.5c-1.5.7-2 1.5-2 3M32 40v.5" stroke="#ffb44a"/></svg>
+        <div>
+          <h3>Next game</h3>
+          <p>Snake, brick breaker, block stacker or one-tap flyer. Followers pick.</p>
+        </div>
+        <a class="vote" href="#follow">Vote on socials</a>
+      </li>
+    </ul>
+
+    <h2>skill tests</h2>
+    <p class="sub">Interview-style questions against the clock, at junior, mid and senior level.</p>
+    <ul class="games">
+      <!-- To add a test: add questions/<topic>.js in /quiz, then copy this <li> and change ?t=linux -->
+      <li class="game">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <rect x="8" y="12" width="48" height="40" rx="3" stroke="#d9ecff"/>
+          <path d="M17 26l7 6-7 6" stroke="#7fe6ff"/>
+          <path d="M29 39h14" stroke="#ffb44a"/>
+        </svg>
+        <div>
+          <h3>Linux command line</h3>
+          <p>From pwd to deleted-but-open files. What rank do you get?</p>
+        </div>
+        <a class="play" href="quiz/?t=linux">Take test</a>
+      </li>
+      <li class="game soon">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="12" width="48" height="40" rx="3" stroke="#d9ecff" stroke-dasharray="5 6"/><path d="M17 26l7 6-7 6" stroke="#7fe6ff"/></svg>
+        <div>
+          <h3>Ansible, Python, PowerShell</h3>
+          <p>Coming soon. Tell me which one you want first.</p>
+        </div>
+        <a class="vote" href="#follow">Vote on socials</a>
+      </li>
+    </ul>
+
+    <h2 id="follow">follow the build</h2>
+    <p class="build">Every game on r3tro is made with AI, from the first prompt to the finished version. I share the whole process, including the broken builds, and you vote on what gets made next.</p>
+    <div class="socials">
+      <!-- TODO: replace # with your real profile links -->
+      <a href="#">TikTok</a>
+      <a href="#">Instagram</a>
+      <a href="#">YouTube</a>
+    </div>
+  </main>
+
+  <footer>
+    <p>r3tro has no accounts and no tracking. Scores stay on your device.</p>
+    <p>Enjoying the games? <a href="#">Buy me a coffee</a> to help fund the next one.</p><!-- TODO: tip jar link -->
+  </footer>
+
+<script>
+(() => {
+  const cv = document.getElementById('field'), ctx = cv.getContext('2d');
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const TAU = Math.PI * 2, rand = (a, b) => a + Math.random() * (b - a);
+  let W, H, rocks = [];
+  function resize() {
+    const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2);
+    W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.fillStyle = '#060a1a'; ctx.fillRect(0, 0, W, H);
+  }
+  function rock() {
+    const s = rand(14, 52), n = 10, pts = [], a = rand(0, TAU), v = rand(10, 35);
+    for (let i = 0; i < n; i++) pts.push(rand(.7, 1.1));
+    return { x: rand(0, W), y: rand(0, H), r: s, pts, rot: rand(0, TAU), spin: rand(-.4, .4), vx: Math.cos(a) * v, vy: Math.sin(a) * v };
+  }
+  resize();
+  const count = Math.max(6, Math.round(W * H / 60000));
+  for (let i = 0; i < count; i++) rocks.push(rock());
+  addEventListener('resize', resize);
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(.033, (now - last) / 1000); last = now;
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.fillStyle = 'rgba(6,10,26,0.35)'; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round';
+    for (const r of rocks) {
+      r.x += r.vx * dt; r.y += r.vy * dt; r.rot += r.spin * dt;
+      if (r.x < -r.r) r.x = W + r.r; if (r.x > W + r.r) r.x = -r.r;
+      if (r.y < -r.r) r.y = H + r.r; if (r.y > H + r.r) r.y = -r.r;
+      ctx.beginPath();
+      r.pts.forEach((p, i) => { const a = r.rot + i / r.pts.length * TAU; const x = r.x + Math.cos(a) * r.r * p, y = r.y + Math.sin(a) * r.r * p; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+      ctx.closePath();
+      ctx.strokeStyle = '#d9ecff'; ctx.globalAlpha = .07; ctx.lineWidth = 5; ctx.stroke();
+      ctx.globalAlpha = .3; ctx.lineWidth = 1.3; ctx.stroke();
+    }
+    if (!still) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
