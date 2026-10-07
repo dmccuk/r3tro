@@ -11,9 +11,6 @@ r3tro/
 ├── index.html                  Homepage (arcade menu)
 ├── games/
 │   └── shardfield/index.html   Game 1: vector rock shooter
-├── quiz/
-│   ├── index.html              Skill test engine (runs any question bank)
-│   └── questions/linux.js      Linux command line questions (48)
 ├── CNAME                       Custom domain for GitHub Pages (r3tro.io)
 ├── .nojekyll                   Tells GitHub Pages to serve files as-is
 ├── README.md
@@ -67,17 +64,3 @@ GitHub occasionally updates these addresses, so double-check them against GitHub
 2. Make sure it meets the game checklist in SPEC.md section 4.
 3. In the homepage `index.html`, copy the Shardfield `<li class="game">` block, then change the link, icon, title and description.
 4. Commit. GitHub Pages redeploys automatically.
-
-## Adding a skill test
-
-The quiz engine in `quiz/index.html` runs any question bank. The URL picks the bank: `quiz/?t=linux` loads `quiz/questions/linux.js`.
-
-1. Copy `quiz/questions/linux.js` to a new file, for example `quiz/questions/ansible.js`.
-2. Change the last part of `window.R3TRO_BANKS.linux` to match the file name (`window.R3TRO_BANKS.ansible`), then update `title`, `short` and `blurb`.
-3. Replace the questions. Each one needs `level` (`junior`, `mid` or `senior`), `q`, optional `code`, four `options`, `answer` (the index of the correct option, starting at 0) and `explain`. Options are shuffled when the test runs.
-4. Aim for at least 15 questions per level. Each run picks 10 at random, so a bigger bank keeps repeat runs fresh.
-5. Copy the Linux row in the homepage's "skill tests" list and change `?t=linux` to your new topic.
-
-Test names may only use lowercase letters, numbers and hyphens.
-
-This is a great place to accept contributions from viewers: they can open a pull request that adds questions to a bank.

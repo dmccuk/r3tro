@@ -53,7 +53,6 @@ Version 1.0, October 2026
 | `/` | Homepage: wordmark, play button, game list, socials, tip link |
 | `/games/shardfield/` | Shardfield |
 | `/games/<slug>/` | Each future game |
-| `/quiz/?t=<topic>` | Skill tests (Linux first, then Ansible, Python, PowerShell and more) |
 | `/privacy/` | Privacy policy (needed before Phase 2) |
 
 **Tech approach (Phase 1):** Static HTML hosted free on GitHub Pages. Each game is one self-contained `index.html` file with its own CSS and JavaScript. No frameworks, no build step, no server. This keeps the AI-to-website workflow simple: generate the file, test it, commit it.
@@ -245,45 +244,7 @@ This is a general checklist, not legal advice. Check the rules where you live.
 | 2 | Returning players, leaderboard submissions, accounts created |
 | 3 | Monthly tips and sponsorship income vs. costs |
 
-## 14. Skill tests
-
-Interview-style tests that bring the r3tro "one more go" feel to sysadmin and automation skills. They suit the existing Linux, Windows and Ansible tutorial audience and give a second reason to visit the site.
-
-**How a test works**
-
-- Pick a level: Junior, Mid or Senior.
-- 10 questions drawn at random from that level's bank, answers shuffled every time.
-- A timer per question (30 s for Junior and Mid, 40 s for Senior). Running out counts as wrong.
-- An explanation after every answer, so the test teaches as well as scores.
-- A review of every missed question at the end.
-
-**Scoring**
-
-| Event | Points |
-|---|---|
-| Correct answer | 100 |
-| Speed bonus | 5 per second left on the timer |
-| Streak bonus (3 or more correct in a row) | +50 |
-
-**Ranks** (by percentage correct)
-
-| Score | Rank |
-|---|---|
-| 100% | Root access granted |
-| 80% and up | Strong hire |
-| 60% and up | Interview ready |
-| 40% and up | Getting there |
-| Below 40% | Back to the man pages |
-
-Scoring 60% or more unlocks a "Try the next level" button. Best score per level is saved in the browser. The share button posts a ready-made brag message with a link back to the test.
-
-**Planned topics:** Linux (live), Ansible, Python for automation, PowerShell, Bash scripting, Windows Server and Active Directory, Git, Docker, Terraform, AWS, Networking.
-
-**Content angle:** Each new test is a video ("Can you pass this Ansible interview?"). Viewers can submit questions by pull request on GitHub, and contributors can be credited in the bank.
-
-**Future ideas:** Leaderboards per test (Phase 2), shareable result images for LinkedIn, and a paid hiring-manager mode that lets companies send a test link to candidates and see the results.
-
-## 15. Open questions
+## 14. Open questions
 
 - Which game wins the first poll?
 - Free tier limits on the chosen leaderboard backend once traffic grows
