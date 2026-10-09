@@ -678,7 +678,7 @@
     Object.assign(G, { score: 0, time: 0, rooms: 0, shake: 0, darkT: 5, beatT: 1, won: false, mapDirty: true });
     floats = [];
     enterRoom(castle.rooms[START]);
-    setMode('play'); showPanel(null);
+    setMode('play'); showPanel(null); resetStick();
     msg('Find the three seals. Walk into the shelf to search it.', C.soft, 4);
   }
   function win() {
@@ -711,7 +711,7 @@
   }
   function togglePause() {
     if (G.mode === 'play') { setMode('paused'); showPanel('p-paused'); releaseInput(); }
-    else if (G.mode === 'paused') { setMode('play'); showPanel(null); initAudio(); }
+    else if (G.mode === 'paused') { setMode('play'); showPanel(null); resetStick(); initAudio(); autoFull(); }
   }
   function toggleMute() { muted = !muted; save('duskhold-muted', muted ? '1' : '0'); syncMute(); }
   function syncMute() {
@@ -1021,10 +1021,16 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden && G.mode === 'play') togglePause(); });
   addEventListener('contextmenu', e => e.preventDefault());
 
+  const fireEl = $('fireBtn');
   const zone = $('stickZone'), base = $('stickBase'), knob = $('stickKnob'), STICK_R = 48;
+  // Sit the stick level with the fire button, mirrored from the left edge with room for the base.
   function resetStick() {
     stick.id = null; stick.x = stick.y = 0;
-    base.style.left = '96px'; base.style.top = Math.max(60, H - 126 - 120) + 'px';
+    const fr = fireEl.getBoundingClientRect(), zr = zone.getBoundingClientRect();
+    if (fr.height && zr.height) {
+      base.style.left = Math.max(W - (fr.left + fr.width / 2), base.offsetWidth / 2 + 16) + 'px';
+      base.style.top = (fr.top + fr.height / 2 - zr.top) + 'px';
+    } else { base.style.left = '96px'; base.style.top = Math.max(60, H - 202) + 'px'; }
     knob.style.transform = ''; base.classList.remove('on');
   }
   zone.addEventListener('pointerdown', e => {
@@ -1065,7 +1071,6 @@
   let launched = false; try { launched = sessionStorage.getItem('r3tro-app') === '1'; } catch (e) {}
   const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || launched;
   const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
-  let fsAsked = false;
   function enterFull() {
     if (!fsOK || standalone || isFull()) return;
     const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
@@ -1076,7 +1081,7 @@
     const ex = document.exitFullscreen || document.webkitExitFullscreen;
     try { const p = ex.call(document); if (p && p.catch) p.catch(() => {}); } catch (e) {}
   }
-  function autoFull() { if (!fsAsked && document.body.classList.contains('touch')) { fsAsked = true; enterFull(); } }
+  function autoFull() { if (document.body.classList.contains('touch')) enterFull(); }
   function syncFull() {
     const on = isFull();
     $('fullBtn').setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');

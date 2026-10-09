@@ -387,7 +387,7 @@
   }
   function togglePause() {
     if (G.mode === 'play') { setMode('paused'); showPanel('p-paused'); releaseHeld(); }
-    else if (G.mode === 'paused') { setMode('play'); showPanel(null); initAudio(); }
+    else if (G.mode === 'paused') { setMode('play'); showPanel(null); initAudio(); autoFull(); }
   }
   function toggleMute() { muted = !muted; save('tumblewell-muted', muted ? '1' : '0'); syncMute(); }
   function syncMute() {
@@ -658,7 +658,6 @@
   let launched = false; try { launched = sessionStorage.getItem('r3tro-app') === '1'; } catch (e) {}
   const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || launched;
   const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
-  let fsAsked = false;
   function enterFull() {
     if (!fsOK || standalone || isFull()) return;
     const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
@@ -669,7 +668,7 @@
     const ex = document.exitFullscreen || document.webkitExitFullscreen;
     try { const p = ex.call(document); if (p && p.catch) p.catch(() => {}); } catch (e) {}
   }
-  function autoFull() { if (!fsAsked && document.body.classList.contains('touch')) { fsAsked = true; enterFull(); } }
+  function autoFull() { if (document.body.classList.contains('touch')) enterFull(); }
   function syncFull() {
     const on = isFull();
     $('fullBtn').setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
