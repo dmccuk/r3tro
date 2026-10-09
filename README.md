@@ -13,7 +13,8 @@ r3tro/
 │   ├── shardfield/index.html   Game 1: vector rock shooter
 │   ├── duskhold/index.html     Game 2: torch-lit castle explorer
 │   └── tumblewell/index.html   Game 3: block stacker in a turning well
-├── CNAME                       Custom domain for GitHub Pages (r3tro.io)
+├── manifest.webmanifest        Lets players add r3tro to their home screen as a full screen app
+├── icons/                      App icons for the home screen
 ├── .nojekyll                   Tells GitHub Pages to serve files as-is
 ├── README.md
 └── SPEC.md

@@ -6,6 +6,13 @@
 <title>r3tro | simple arcade games, free to play</title>
 <meta name="description" content="Simple, addictive arcade games you can play in seconds. Free, no sign-up. Every game built with AI, step by step, in public.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☄️</text></svg>">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#060a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="r3tro">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Major+Mono+Display&display=swap" rel="stylesheet">
@@ -36,6 +43,8 @@
     text-shadow: 0 0 8px rgba(127,230,255,.9), 0 0 32px rgba(127,230,255,.5), 0 0 90px rgba(127,230,255,.3);
   }
   .tag { max-width: 30ch; margin: 22px auto 34px; font-size: 19px; color: var(--soft); }
+  .ios-tip { max-width: 32ch; margin: 26px auto 0; font-size: 14px; color: var(--cyan); }
+  .ios-tip[hidden] { display: none; }
   .go {
     display: inline-block; font: 600 18px var(--ui); color: var(--amber); text-decoration: none;
     border: 1.5px solid var(--amber); background: rgba(255,180,74,.06); padding: 14px 38px; border-radius: 4px;
@@ -79,6 +88,7 @@
       <h1 class="mark">r3tro</h1>
       <p class="tag">Simple arcade games you can play in seconds. Free, no sign-up.</p>
       <a class="go" href="games/shardfield/">Play Shardfield</a>
+      <p class="ios-tip" id="iosTip" hidden>Play full screen like an app: tap Share, then Add to Home Screen.</p>
     </div>
   </header>
 
@@ -150,6 +160,15 @@
   </footer>
 
 <script>
+(() => {
+  // iPhone can't go full screen from a web page, so suggest adding r3tro to the home screen instead.
+  const fsOK = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  // Opened from the home screen icon: the manifest's start address carries ?app=1. Remember it for this window.
+  try { if (new URLSearchParams(location.search).has('app')) sessionStorage.setItem('r3tro-app', '1'); } catch (e) {}
+  let launched = false; try { launched = sessionStorage.getItem('r3tro-app') === '1'; } catch (e) {}
+  const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || launched;
+  document.getElementById('iosTip').hidden = fsOK || standalone || !(matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window);
+})();
 (() => {
   const cv = document.getElementById('field'), ctx = cv.getContext('2d');
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;

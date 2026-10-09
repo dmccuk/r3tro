@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tumblewell | r3tro.io</title>
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
+<meta name="theme-color" content="#060a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="r3tro">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Major+Mono+Display&display=swap" rel="stylesheet">
@@ -68,6 +75,9 @@
   .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .icon-btn:focus-visible, .go:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   .icon-btn[aria-pressed="true"] { color: var(--dim); }
+  .icon-btn[hidden] { display: none; }
+  .hint.ios-tip { color: var(--cyan); }
+  .hint.ios-tip[hidden] { display: none; }
 
   /* Panels */
   .panel {
@@ -116,6 +126,9 @@
     </div>
     <div class="hud-r">
       <div class="btns">
+        <button class="icon-btn" id="fullBtn" aria-label="Full screen" hidden>
+          <svg viewBox="0 0 24 24"><path id="fullIcon" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
         <button class="icon-btn" id="muteBtn" aria-label="Mute sound" aria-pressed="false">
           <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="waves" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
         </button>
@@ -133,6 +146,7 @@
     <button class="go" id="startBtn">Start game</button>
     <p class="hint hint-key">Press the arrow that points where you want the block to go. Toward the floor drops faster, away from it rotates. Space drops, Z and X rotate, P pauses.</p>
     <p class="hint hint-touch">Drag to move the block. Tap to rotate. Flick toward the floor to drop it.</p>
+    <p class="hint ios-tip" id="iosTip" hidden>Play full screen: tap Share, then Add to Home Screen.</p>
     <p class="bestline" id="titleBest"></p>
     <a class="home" href="../../">More games on r3tro</a>
   </section>
@@ -350,6 +364,7 @@
   function startGame() {
     if (G.mode === 'play') return;
     initAudio();
+    autoFull();
     board = emptyBoard(); bag = []; next = null; parts = []; floats = [];
     Object.assign(G, { score: 0, lines: 0, level: 1, combo: 0, mult: 1, maxMult: 1, turns: 0, k: 0, angle: 0, turning: 0,
                        clearRows: [], clearT: 0, shake: 0, tick: 0 });
@@ -579,6 +594,7 @@
       e.preventDefault(); startGame(); return;
     }
     if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
+    if (e.code === 'KeyF') toggleFull();
     if (e.code === 'KeyM') { toggleMute(); return; }
     if (G.mode !== 'play') return;
     if (SCREEN[e.code]) {
@@ -634,6 +650,35 @@
   $('resumeBtn').addEventListener('click', togglePause);
   $('pauseBtn').addEventListener('click', () => { if (G.mode === 'play' || G.mode === 'paused') togglePause(); });
   $('muteBtn').addEventListener('click', () => { initAudio(); toggleMute(); });
+
+  // ---------- full screen ----------
+  // Android and desktop browsers can go full screen from a tap. iPhone cannot, so iPhone players
+  // get a tip to add r3tro to the home screen, which opens it without the browser bars.
+  const fsOK = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  let launched = false; try { launched = sessionStorage.getItem('r3tro-app') === '1'; } catch (e) {}
+  const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || launched;
+  const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+  let fsAsked = false;
+  function enterFull() {
+    if (!fsOK || standalone || isFull()) return;
+    const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+    try { const p = req.call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  }
+  function toggleFull() {
+    if (!isFull()) return enterFull();
+    const ex = document.exitFullscreen || document.webkitExitFullscreen;
+    try { const p = ex.call(document); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  }
+  function autoFull() { if (!fsAsked && document.body.classList.contains('touch')) { fsAsked = true; enterFull(); } }
+  function syncFull() {
+    const on = isFull();
+    $('fullBtn').setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+    $('fullIcon').setAttribute('d', on ? 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5' : 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5');
+  }
+  $('fullBtn').hidden = !fsOK || standalone;
+  $('fullBtn').addEventListener('click', toggleFull);
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, syncFull));
+  $('iosTip').hidden = fsOK || standalone || !(matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window);
 
   // ---------- boot ----------
   // The title screen shows a slowly turning well with a few blocks in it.
