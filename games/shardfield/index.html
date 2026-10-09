@@ -112,6 +112,17 @@
   .pad.on { background: rgba(127,230,255,.2); box-shadow: 0 0 18px rgba(127,230,255,.45); border-color: var(--cyan); }
   .pad.fire { width: 80px; height: 80px; border-color: rgba(255,180,74,.6); color: var(--amber); }
   .pad.fire.on { background: rgba(255,180,74,.22); box-shadow: 0 0 22px rgba(255,180,74,.55); border-color: var(--amber); }
+  #stickZone { position: absolute; left: 0; bottom: 0; top: 90px; width: 55%; display: none; touch-action: none; }
+  body.touch[data-mode="play"] #stickZone { display: block; }
+  #stickBase {
+    position: absolute; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; pointer-events: none;
+    border: 1.5px solid rgba(217,236,255,.32); background: rgba(127,230,255,.04); opacity: .55;
+  }
+  #stickBase.on { opacity: 1; }
+  #stickKnob {
+    position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%;
+    border: 1.5px solid var(--cyan); background: rgba(127,230,255,.16); box-shadow: 0 0 14px rgba(127,230,255,.4);
+  }
   @media (prefers-reduced-motion: reduce) { .newbest.yes { animation: none; } }
 </style>
 </head>
@@ -140,7 +151,7 @@
     <p class="lede">Split the rocks. Chain hits fast to push your multiplier to x8. Grab drops for triple shot, rapid fire, shields and novas.</p>
     <button class="go" id="startBtn">Start game</button>
     <p class="hint hint-key">Arrows or WASD to turn and thrust, Space to fire, P to pause.</p>
-    <p class="hint hint-touch">Left buttons turn your ship. Right buttons thrust and fire.</p>
+    <p class="hint hint-touch">Drag on the left to steer: your ship turns to face your thumb and flies when you push further. Tap the right button to fire.</p>
     <p class="bestline" id="titleBest"></p>
     <a class="home" href="../../">More games on r3tro</a>
   </section>
@@ -159,13 +170,10 @@
     <a class="home" href="../../">More games on r3tro</a>
   </section>
 
+  <div id="stickZone"><div id="stickBase"><div id="stickKnob"></div></div></div>
   <div id="touch">
+    <div></div>
     <div class="cluster">
-      <button class="pad" data-k="left" aria-label="Turn left"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <button class="pad" data-k="right" aria-label="Turn right"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
-    </div>
-    <div class="cluster">
-      <button class="pad" data-k="thrust" aria-label="Thrust"><svg viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg></button>
       <button class="pad fire" data-k="fire" aria-label="Fire"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg></button>
     </div>
   </div>
@@ -241,6 +249,7 @@
               waveT: 0, cleared: false, shake: 0, beatT: 1, beatHi: false, saucerT: 15, deadT: 0, speedMul: 1, overT: 0 };
   const pw = { triple: 0, rapid: 0, shield: 0 };
   const input = { left: false, right: false, thrust: false, fire: false };
+  const stick = { x: 0, y: 0, id: null, cx: 0, cy: 0 };
 
   function setMode(m) { G.mode = m; document.body.dataset.mode = m; }
   function showPanel(id) { document.querySelectorAll('.panel').forEach(p => p.classList.toggle('show', p.id === id)); }
@@ -382,7 +391,7 @@
     setTimeout(() => $('againBtn').focus({ preventScroll: true }), 50);
   }
   function togglePause() {
-    if (G.mode === 'play') { setMode('paused'); showPanel('p-paused'); for (const k in input) input[k] = false; }
+    if (G.mode === 'play') { setMode('paused'); showPanel('p-paused'); for (const k in input) input[k] = false; resetStick(); }
     else if (G.mode === 'paused') { setMode('play'); showPanel(null); initAudio(); }
   }
   function toggleMute() {
@@ -418,7 +427,17 @@
     if (ship.alive) {
       if (input.left) ship.a -= 4.4 * dt;
       if (input.right) ship.a += 4.4 * dt;
-      if (input.thrust) {
+      // stick: turn to face the thumb, and thrust once it is pushed past halfway
+      let stickThrust = false;
+      const sm = Math.hypot(stick.x, stick.y);
+      if (sm > .25) {
+        let diff = Math.atan2(stick.y, stick.x) - ship.a;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+        const turn = 7 * dt;
+        ship.a += Math.abs(diff) <= turn ? diff : Math.sign(diff) * turn;
+        stickThrust = sm > .55 && Math.abs(diff) < 1.2;
+      }
+      if (input.thrust || stickThrust) {
         const TH = 300 * S;
         ship.vx += Math.cos(ship.a) * TH * dt; ship.vy += Math.sin(ship.a) * TH * dt;
         if (Math.random() < .6) {
@@ -590,7 +609,7 @@
       if (!blink) {
         const r = ship.r;
         poly(ship.x, ship.y, ship.a, [[r, 0], [-r * .8, r * .68], [-r * .45, 0], [-r * .8, -r * .68]]); glow(C.cyan, 1.7);
-        if (input.thrust && Math.random() > .2) {
+        if ((input.thrust || (Math.hypot(stick.x, stick.y) > .55)) && Math.random() > .2) {
           poly(ship.x, ship.y, ship.a, [[-r * .55, r * .32], [-r * rand(1.15, 1.7), 0], [-r * .55, -r * .32]], false); glow(C.amber, 1.5);
         }
       }
@@ -655,7 +674,7 @@
     if (e.code === 'KeyM') toggleMute();
   });
   addEventListener('keyup', e => { const k = KM[e.code]; if (k) input[k] = false; });
-  addEventListener('blur', () => { for (const k in input) input[k] = false; if (G.mode === 'play') togglePause(); });
+  addEventListener('blur', () => { for (const k in input) input[k] = false; resetStick(); if (G.mode === 'play') togglePause(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && G.mode === 'play') togglePause(); });
   addEventListener('contextmenu', e => e.preventDefault());
 
@@ -666,6 +685,29 @@
     b.addEventListener('pointerdown', on);
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => b.addEventListener(ev, off));
   });
+  const zone = $('stickZone'), base = $('stickBase'), knob = $('stickKnob'), STICK_R = 52;
+  function resetStick() {
+    stick.id = null; stick.x = stick.y = 0;
+    base.style.left = '100px'; base.style.top = Math.max(70, H - 90 - 100) + 'px';
+    knob.style.transform = ''; base.classList.remove('on');
+  }
+  zone.addEventListener('pointerdown', e => {
+    if (G.mode !== 'play' || stick.id !== null) return;
+    e.preventDefault(); initAudio();
+    const zr = zone.getBoundingClientRect();
+    stick.id = e.pointerId; stick.cx = e.clientX; stick.cy = e.clientY;
+    base.style.left = (e.clientX - zr.left) + 'px'; base.style.top = (e.clientY - zr.top) + 'px'; base.classList.add('on');
+    try { zone.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  zone.addEventListener('pointermove', e => {
+    if (e.pointerId !== stick.id) return;
+    let dx = e.clientX - stick.cx, dy = e.clientY - stick.cy;
+    const d = Math.hypot(dx, dy);
+    if (d > STICK_R) { dx *= STICK_R / d; dy *= STICK_R / d; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    stick.x = dx / STICK_R; stick.y = dy / STICK_R;
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => zone.addEventListener(ev, e => { if (e.pointerId === stick.id) resetStick(); }));
   const markTouch = () => document.body.classList.add('touch');
   if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window) markTouch();
   addEventListener('touchstart', markTouch, { once: true, passive: true });
@@ -677,8 +719,8 @@
   $('muteBtn').addEventListener('click', () => { initAudio(); toggleMute(); });
 
   // ---------- boot ----------
-  resize(); syncMute();
-  addEventListener('resize', resize);
+  resize(); syncMute(); resetStick();
+  addEventListener('resize', () => { resize(); resetStick(); });
   if (best > 0) $('titleBest').textContent = 'Your best: ' + best.toLocaleString();
   for (let i = 0; i < 7; i++) rocks.push(makeRock(rand(0, W), rand(0, H), 1 + Math.floor(Math.random() * 3), .7));
   hud();

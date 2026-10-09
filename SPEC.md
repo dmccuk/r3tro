@@ -86,8 +86,8 @@ A vector-style space shooter. Fly a small ship, shoot drifting rocks that split 
 
 | Action | Keyboard | Touch |
 |---|---|---|
-| Turn | Left/Right arrows or A/D | Left cluster buttons |
-| Thrust | Up arrow or W | Up-chevron button |
+| Turn | Left/Right arrows or A/D | Control stick (left thumb): the ship turns to face the stick |
+| Thrust | Up arrow or W | Push the stick past halfway |
 | Fire | Space (or J/K) | Large circle button |
 | Pause | P or Escape | Pause button, top right |
 | Mute | M | Speaker button, top right |
